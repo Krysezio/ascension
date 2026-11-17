@@ -1,0 +1,57 @@
+name: Compiler l'APK Android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Dépendances
+        run: npm ci
+
+      - name: Synchroniser l'appli web dans le projet Android
+        run: npx cap sync android
+
+      - name: Clé de signature (toujours la même, pour pouvoir mettre à jour sans perdre les données)
+        run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_B64 }}" ]; then echo "Secret ANDROID_KEYSTORE_B64 manquant" && exit 1; fi
+          echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/ascension.keystore"
+
+      - name: Compiler
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ascension.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Renommer
+        run: cp android/app/build/outputs/apk/release/app-release.apk Ascension.apk
+
+      - name: Publier la version
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Ascension 1.0.${{ github.run_number }}
+          body: Télécharger Ascension.apk sur le téléphone, puis l'ouvrir pour installer ou mettre à jour.
+          files: Ascension.apk
+          make_latest: true
