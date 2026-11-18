@@ -140,6 +140,20 @@ label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
 .wdc em{font-style:normal;font-size:10px}
 .wdbar{width:100%;height:70px;background:var(--card2);border-radius:6px;display:flex;align-items:flex-end;overflow:hidden}
 .wdbar i{display:block;width:100%;background:linear-gradient(0deg,#a87f1f,#f1d27a);border-radius:6px}
+nav button{max-width:130px}
+.tlr{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line)}.tlr:first-of-type{border-top:0}
+.tlr .act{flex:1;border-top:0}
+.tt{flex:none;width:52px;background:#16130d;border:1px solid #3a321f;color:var(--acc2);border-radius:8px;font:700 12.5px Inter;padding:6px 0;text-align:center;cursor:pointer}
+.tt.ev{cursor:default;opacity:.8}
+.sc{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}.sc:first-of-type{border-top:0}
+.sc input{width:auto;margin-top:3px;accent-color:#c9a227}.sc span{display:flex;flex-direction:column}.sc em{font-style:normal;font-size:12px;color:var(--mut)}
+.wdsel,.segs{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.wdsel button,.segs button{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--mut);border-radius:9px;padding:8px 4px;font:600 12px Inter;cursor:pointer;white-space:nowrap}
+.wdsel button.on,.segs button.on{border-color:var(--acc);color:var(--txt);background:#251f0e}
+.tl{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}.tl:first-of-type{border-top:0}
+.tl input{width:92px;flex:none;padding:7px}
+.evr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.evr:first-child{border-top:0}
+.chk{display:flex;gap:12px;flex-wrap:wrap}.chk label{display:flex;gap:5px;align-items:center;font-size:13px}.chk input{width:auto;accent-color:#c9a227}
 </style>
 </head>
 <body>
@@ -147,6 +161,7 @@ label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
 <nav id="nav">
   <button data-tab="today" class="on"><span class="ic">◉</span>Aujourd'hui</button>
   <button data-tab="goals"><span class="ic">◆</span>Objectifs</button>
+  <button data-tab="agenda"><span class="ic">◷</span>Agenda</button>
   <button data-tab="stats"><span class="ic">▦</span>Progression</button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -182,6 +197,7 @@ function migrate(s){
   if(!s.notif)s.notif={on:true,times:{matin:wakeToTime(s.profile&&s.profile.wake)||"06:30",midi:"12:30",aprem:"15:00",soir:"19:00"},bilan:"21:30",mesure:"10:00"};
   s.photos=s.photos||{};
   (s.goals||[]).forEach(g=>{if(!g.art)g.art=artFor(DOMAIN_ART[g.key]||"peak",s.profile&&s.profile.sex)});
+  s.dayPlan=s.dayPlan||{};s.moves=s.moves||[];s.events=s.events||[];
   s.trophies=s.trophies||{};s.ritual=s.ritual||{};s.prio=s.prio||{};s.partner=s.partner||{};s.cycle=s.cycle||1;
   if(s.notif&&!s.notif.relance)s.notif.relance="20:00";s.journal=s.journal||{};s.reviews=s.reviews||{};
   s.jokers=s.jokers||{};s.measures=s.measures||{};s.view=s.view||"slot";
@@ -422,9 +438,10 @@ function buildNotifs(){
     const L=S.log[k]||{},D=due(k).filter(a=>!L[a.id]);let n=0;
     const push=(at,title,body,ids)=>{if(at.getTime()>now){const o={id:(i+1)*100+(n++),title,body,largeBody:body,schedule:{at,allowWhileIdle:true},channelId:"rappels",smallIcon:"ic_stat_ascension",iconColor:"#C9A227",extra:{day:k,ids:ids||[]}};if(ids&&ids.length)o.actionTypeId="PROMESSES";out.push(o)}};
     const line=a=>{const d=detailOf(a,k);return"• "+(a.core?"⭐ ":"")+a.label+(d?" — "+d:"")};
-    ["matin","midi","aprem","soir"].forEach(s=>{const list=D.filter(a=>(a.slot||"")===s&&!a.time).sort((a,b)=>b.core-a.core);
+    ["matin","midi","aprem","soir"].forEach(s=>{const list=D.filter(a=>(a.slot||"")===s&&!timeOf(a,k)).sort((a,b)=>b.core-a.core);
       if(list.length)push(atTime(k,T[s]),`${SLOTS[s]} · ${list.length} promesse${list.length>1?"s":""}`,list.map(line).join("\n"),list.map(a=>a.id))});
-    D.filter(a=>a.time).forEach(a=>push(atTime(k,a.time),"⏰ "+a.label,detailOf(a,k)||"C'est l'heure.",[a.id]));
+    D.filter(a=>timeOf(a,k)).forEach(a=>push(atTime(k,timeOf(a,k)),"⏰ "+a.label,detailOf(a,k)||"C'est l'heure.",[a.id]));
+    evTasks(k).filter(e=>!L[e.key]).forEach(e=>push(atTime(k,e.time),e.e+" "+e.label,"Date importante · Ascension"));
     {const rc=due(k).filter(a=>a.core&&!L[a.id]);if(rc.length&&S.notif.relance&&!S.jokers[k])push(atTime(k,S.notif.relance),`⚠️ Il te reste ${rc.length} socle${rc.length>1?"s":""}`,rc.map(a=>"• "+a.label).join("\n")+"\nTiens ta série 🔥",rc.map(a=>a.id))}
     if(!(i===0&&valid(k))){const core=due(k).filter(a=>a.core);
       push(atTime(k,S.notif.bilan),"🌙 Bilan du jour",core.length?"Ton socle : "+core.map(a=>a.label).join(", ")+". Coche ce que tu as tenu, puis 3 lignes au journal.":"Coche ce que tu as tenu, puis 3 lignes au journal.")}
@@ -559,9 +576,16 @@ function weekReview(endDay){
     if(x.a.freq==="d")sugg.push({a:x.a,txt:`« ${x.a.label} » tenu ${x.dn}/${x.du} : passer à 3 fois par semaine (lun · mer · ven) ?`,kind:"f135",btn:"Passer à 3×/sem."});
     else if(x.a.core)sugg.push({a:x.a,txt:`« ${x.a.label} » (socle) tenu ${x.dn}/${x.du} : le passer en bonus pour protéger ta série ?`,kind:"bonus",btn:"Passer en bonus"});
     else if(x.a.steps)sugg.push({a:x.a,txt:`« ${x.a.label} » tenu ${x.dn}/${x.du} : revenir au palier précédent ?`,kind:"ease",btn:"Alléger"})});
+  const mv=(S.moves||[]).filter(m=>days.includes(m.d)),by={};mv.forEach(m=>{(by[m.aid]=by[m.aid]||[]).push(m)});
+  Object.entries(by).forEach(([aid,L])=>{const a=S.actions.find(x=>x.id===aid);if(!a)return;
+    const ex=L.filter(m=>m.kind==="today"),po=L.filter(m=>m.kind==="postpone");
+    if(ex.length>=2){const cnt={};ex.forEach(m=>{const hr=m.to.slice(0,2);cnt[hr]=(cnt[hr]||[]).concat(m.to)});const best=Object.values(cnt).sort((x,y)=>y.length-x.length)[0];
+      if(best.length>=2){const t=best[best.length-1];sugg.unshift({a,txt:`« ${a.label} » décalé ${ex.length} fois cette semaine, souvent vers ${t} : l'inscrire à ${t} dans ta routine ?`,kind:"rt-"+t.replace(":",""),btn:"Passer à "+t+" en routine"})}}
+    if(po.length>=2&&a.freq==="d")sugg.push({a,txt:`« ${a.label} » reporté ${po.length} fois : passer à 3 fois par semaine pour qu'elle tienne ?`,kind:"f135",btn:"Passer à 3×/sem."});});
+  const nextWeek=(S.events||[]).map(ev=>({ev,o:nextOcc(ev)})).filter(x=>x.o&&diff(endDay,x.o)>0&&diff(endDay,x.o)<=10);
   const meas=S.goals.filter(g=>g.metric&&g.metric.n&&(S.measures[g.id]||[]).length).map(g=>{const m=S.measures[g.id],last=m[m.length-1];
     const prev=[...m].reverse().find(x=>diff(x.d,last.d)>=6)||m[0];return{g,last,dl:last.v-prev.v,has:prev!==last}});
-  return{days,held,best,worst,sugg,meas};
+  return{days,held,best,worst,sugg:sugg.slice(0,4),meas,mv,nextWeek};
 }
 function vReview(endDay){
   const R=weekReview(endDay),pct=R.days.length?Math.round(R.held/R.days.length*100):0;
@@ -571,6 +595,8 @@ function vReview(endDay){
   ${R.best.length?`<div class="card"><b>💪 Tes points forts</b>${R.best.map(x=>`<div class="rv"><span>${esc(x.a.label)}</span><span class="xp">${x.dn}/${x.du}</span></div>`).join("")}</div>`:""}
   ${R.worst.length?`<div class="card"><b>⚠️ À travailler</b>${R.worst.map(x=>`<div class="rv"><span>${esc(x.a.label)}</span><span class="mut">${x.dn}/${x.du}</span></div>`).join("")}</div>`:""}
   ${R.meas.length?`<div class="card"><b>📏 Mesures</b>${R.meas.map(m=>`<div class="rv"><span>${esc(m.g.emoji)} ${esc(m.g.metric.n)} : ${fnum(m.last.v)} ${esc(m.g.metric.u||"")}</span><span class="mut">${m.has?(m.dl>0?"+":"")+fnum(m.dl)+" en 7 j":"1re mesure"}</span></div>`).join("")}</div>`:""}
+  ${R.mv.length?`<div class="mut sm" style="margin:0 0 10px">🔀 ${R.mv.filter(m=>m.kind==="today").length} décalage(s) exceptionnel(s), ${R.mv.filter(m=>m.kind==="postpone").length} report(s), ${R.mv.filter(m=>m.kind!=="today"&&m.kind!=="postpone").length} changement(s) de routine cette semaine.</div>`:""}
+  ${R.nextWeek.length?`<div class="card"><b>📅 La semaine prochaine</b>${R.nextWeek.map(x=>`<div class="rv"><span>${(EVT[x.ev.type]||EVT.rdv).e} ${esc(x.ev.name)}</span><span class="mut">${parse(x.o).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</span></div>`).join("")}<div class="mut sm" style="margin-top:6px">Les tâches de préparation apparaîtront automatiquement dans tes journées.</div></div>`:""}
   ${R.sugg.length?`<div class="card"><b>🔧 Ajustements proposés</b>${R.sugg.map(s=>`<div class="sg"><div class="mut sm">${esc(s.txt)}</div><button class="btn" data-do="adj:${s.a.id}:${s.kind}">${s.btn}</button></div>`).join("")}</div>`:`<div class="mut sm" style="text-align:center">Aucun ajustement nécessaire.</div>`}
   ${(()=>{const W=weekdayStats();return W.weak&&W.st.filter(y=>y.n).length>2?`<div class="mut sm" style="margin:8px 0">📅 Ton jour le plus fragile : le <b style="color:var(--txt)">${WDL[W.weak.i]}</b> (${W.weak.ok}/${W.weak.n} tenus).</div>`:""})()}
   ${S.partner&&S.partner.name?partnerLinks(endDay):`<div class="mut sm" style="margin-top:10px">💬 Ajoute un partenaire de suivi dans Progression → Réglages pour lui envoyer ce bilan en un appui.</div>`}
@@ -698,6 +724,83 @@ function nextCycle(){
   S.cycle=(S.cycle||1)+1;S.startDate=today();S.lastPhase=0;persist();render();toast(`Cycle ${S.cycle} lancé. On monte encore.`);
 }
 
+/* ---------- horaires, journées types et décalages ---------- */
+const planOf=k=>(S.dayPlan||{})[k]||{};
+const SLOT_T=s=>s&&S.notif?({matin:S.notif.times.matin,midi:S.notif.times.midi,aprem:S.notif.times.aprem,soir:S.notif.times.soir}[s]||""):"";
+function routineTime(a,w){return(a.wt&&a.wt[w])||a.time||""}
+function timeOf(a,k){const o=planOf(k)[a.id];if(o&&o.time)return o.time;return routineTime(a,parse(k).getDay())}
+const sortTime=(a,k)=>timeOf(a,k)||SLOT_T(a.slot)||"13:00";
+const period=t=>t<"12:00"?"matin":t<"14:00"?"midi":t<"18:00"?"aprem":"soir";
+const addMin=(t,m)=>{let[h,mi]=(t||"12:00").split(":").map(Number);let x=Math.max(0,Math.min(23*60+59,h*60+mi+m));return z(Math.floor(x/60))+":"+z(x%60)};
+function moveSheet(aid,k){
+  const a=S.actions.find(x=>x.id===aid);if(!a)return;const t=sortTime(a,k),w=parse(k).getDay();
+  openModal(`<div class="mhead"><div><div class="day">Décaler</div><h2 class="disp" style="font-size:21px">${esc(a.label)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <label class="f">Nouvelle heure</label><input type="time" id="mvT" value="${t}">
+  <div class="row" style="gap:8px;margin-top:8px"><button class="btn" data-do="mvadd:-30">−30 min</button><button class="btn" data-do="mvadd:30">+30 min</button><button class="btn" data-do="mvadd:60">+1 h</button></div>
+  <div class="card" style="margin-top:14px"><b>Ce changement est…</b>
+   <label class="sc"><input type="radio" name="mvS" value="today" checked><span><b>Exceptionnel</b><em>Aujourd'hui seulement</em></span></label>
+   <label class="sc"><input type="radio" name="mvS" value="wd"><span><b>Ma journée type du ${WDL[w]}</b><em>Tous les ${WDL[w]}s</em></span></label>
+   <label class="sc"><input type="radio" name="mvS" value="all"><span><b>Ma routine</b><em>Tous les jours où elle est prévue</em></span></label></div>
+  <button class="btn p" style="width:100%;padding:13px" data-do="mvok:${aid}">Valider</button>
+  ${k===today()?`<button class="btn" style="width:100%;margin-top:8px" data-do="mvpost:${aid}">⏭ Reporter à demain (exceptionnel)</button>`:""}`);
+}
+function applyMove(aid,k,scope,time){
+  const a=S.actions.find(x=>x.id===aid);if(!a)return;const from=sortTime(a,k),w=parse(k).getDay();
+  S.dayPlan=S.dayPlan||{};S.moves=S.moves||[];
+  if(scope==="today"){const P=S.dayPlan[k]||(S.dayPlan[k]={});P[aid]={...(P[aid]||{}),time}}
+  if(scope==="wd"){a.wt=a.wt||{};a.wt[w]=time;if(S.dayPlan[k]&&S.dayPlan[k][aid])delete S.dayPlan[k][aid].time}
+  if(scope==="all"){a.time=time;a.wt={};if(S.dayPlan[k]&&S.dayPlan[k][aid])delete S.dayPlan[k][aid].time}
+  S.moves.push({d:k,aid,kind:scope,from,to:time});
+  toast(scope==="today"?"Décalé pour aujourd'hui":scope==="wd"?`Journée type du ${WDL[w]} mise à jour`:"Routine mise à jour");
+}
+function postpone(aid,k){
+  const a=S.actions.find(x=>x.id===aid);if(!a)return;S.dayPlan=S.dayPlan||{};S.moves=S.moves||[];
+  const t=addDays(k,1);(S.dayPlan[k]=S.dayPlan[k]||{})[aid]={skip:true};
+  (S.dayPlan[t]=S.dayPlan[t]||{})[aid]={add:true,time:sortTime(a,k)};
+  S.moves.push({d:k,aid,kind:"postpone",from:sortTime(a,k),to:t});toast("Reporté à demain");
+}
+function vTypes(){
+  const w=typeDay;const acts=S.actions.filter(a=>!a.freq||a.freq==="d"||a.freq.includes(String(w))).sort((a,b)=>(routineTime(a,w)||SLOT_T(a.slot)||"13:00")<(routineTime(b,w)||SLOT_T(b.slot)||"13:00")?-1:1);
+  return`<div class="wdsel">${[1,2,3,4,5,6,0].map(i=>`<button class="${i===w?"on":""}" data-do="tday:${i}">${WD[i]}</button>`).join("")}</div>
+  ${acts.map(a=>{const g=S.goals.find(x=>x.id===a.goalId);return`<div class="tl"><input type="time" data-wt="${a.id}" value="${routineTime(a,w)||SLOT_T(a.slot)||"13:00"}"><div class="lbl">${a.core?`<span class="core">SOCLE</span>`:""}${g?esc(g.emoji)+" ":""}${esc(a.label)}${a.wt&&a.wt[w]?`<div class="det" style="color:var(--acc2)">Horaire propre au ${WDL[w]}</div>`:""}</div></div>`}).join("")||`<div class="mut sm">Rien de prévu ce jour-là.</div>`}
+  <div class="mut sm" style="margin-top:8px">Une heure modifiée ici ne vaut que pour le ${WDL[w]}. Pour tous les jours, change l'heure dans Objectifs.</div>`;
+}
+let typeDay=new Date().getDay();
+
+/* ---------- dates importantes ---------- */
+const EVT={anniv:{n:"Anniversaire",e:"🎂",prep:{14:"Organiser l'anniversaire de {n}",7:"Trouver une idée cadeau pour {n}",3:"Acheter le cadeau de {n}",1:"Préparer la carte ou le message pour {n}",0:"Souhaiter son anniversaire à {n} 🎂"},def:[7,3,0]},
+  fete:{n:"Fête annuelle",e:"🎉",prep:{14:"Organiser : {n}",7:"Prévoir un cadeau ou une attention : {n}",3:"Acheter le cadeau : {n}",1:"Rappel : {n} demain",0:"{n} aujourd'hui 🎉"},def:[7,3,0]},
+  rdv:{n:"Événement ponctuel",e:"📌",prep:{14:"Préparer : {n}",7:"Préparer : {n}",3:"Finaliser : {n}",1:"Rappel : {n} demain",0:"{n} aujourd'hui"},def:[7,1,0]}};
+function occOf(ev,k){
+  if(ev.type==="rdv")return[ev.date];
+  const y=+k.slice(0,4),md=ev.date.slice(5);return[y,y+1].map(Y=>Y+"-"+md);
+}
+function evTasks(k){
+  const out=[];(S.events||[]).forEach(ev=>{const T=EVT[ev.type]||EVT.rdv;occOf(ev,k).forEach(o=>{(ev.prep||T.def).forEach(b=>{if(addDays(o,-b)===k)out.push({key:"ev:"+ev.id+":"+o+":"+b,label:(T.prep[b]||"{n}").replace("{n}",ev.name),e:T.e,time:ev.time||"09:00",ev})})})});
+  return out;
+}
+function nextOcc(ev){const k=today();return occOf(ev,k).filter(o=>o>=k).sort()[0]||null}
+function upcoming(days){return(S.events||[]).map(ev=>({ev,o:nextOcc(ev)})).filter(x=>x.o&&diff(today(),x.o)<=days).sort((a,b)=>a.o<b.o?-1:1)}
+function vEvents(){
+  const L=(S.events||[]).map(ev=>({ev,o:nextOcc(ev)})).sort((a,b)=>(a.o||"9")<(b.o||"9")?-1:1);
+  let h=L.map(({ev,o})=>{const T=EVT[ev.type]||EVT.rdv,dd=o?diff(today(),o):null;
+    return`<div class="evr"><div><b>${T.e} ${esc(ev.name)}</b><div class="mut sm">${o?`${parse(o).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"long"})} · ${dd===0?"aujourd'hui":"dans "+dd+" j"}`:"Passé"} · rappels ${(ev.prep||T.def).map(b=>b?"J-"+b:"Jour J").join(", ")}</div></div><button class="btn d" data-confirm="evdel:${ev.id}">✕</button></div>`}).join("");
+  if(!h)h=`<div class="mut sm">Aucune date. Ajoute anniversaires, fêtes (fête des mères, Saint-Valentin…) et rendez-vous importants.</div>`;
+  return h+`<div class="card evf" style="margin-top:12px"><b>+ Ajouter une date</b>
+   <div class="segs">${Object.entries(EVT).map(([k,t])=>`<button class="${evType===k?"on":""}" data-do="evtype:${k}">${t.e} ${t.n}</button>`).join("")}</div>
+   <label class="f">${evType==="anniv"?"Prénom":"Nom de l'événement"}</label><input id="evN" placeholder="${evType==="anniv"?"Ex. Linoa":evType==="fete"?"Ex. Fête des mères":"Ex. Rendez-vous banque"}">
+   <label class="f">Date${evType==="rdv"?"":" (l'année ne compte pas, c'est chaque année)"}</label><input type="date" id="evD">
+   <label class="f">Rappels dans la routine</label><div class="chk">${[14,7,3,1,0].map(b=>`<label><input type="checkbox" value="${b}" ${EVT[evType].def.includes(b)?"checked":""}> ${b?"J-"+b:"Jour J"}</label>`).join("")}</div>
+   <div class="mut sm" style="margin-top:6px">${[14,7,3,1,0].filter(b=>EVT[evType].def.includes(b)).map(b=>`${b?"J-"+b:"Jour J"} : « ${EVT[evType].prep[b].replace("{n}","…")} »`).join("<br>")}</div>
+   <button class="btn p" style="width:100%;margin-top:10px" data-do="evadd">Ajouter</button></div>`;
+}
+let evType="anniv";
+function vAgenda(){
+  return`<div class="top"><div><div class="day">Organisation</div><h1 class="big">Agenda</h1></div></div>
+  <div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Mes journées types</div>${vTypes()}</div>
+  <div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Dates importantes</div>${vEvents()}</div>`;
+}
+
 /* ---------- logique ---------- */
 const entries=()=>Object.values(S.log).flatMap(d=>Object.values(d));
 const totalXP=()=>entries().reduce((a,e)=>a+e.x,0);
@@ -708,7 +811,7 @@ const phaseOf=k=>{const i=diff(S.startDate,k);return i<0?0:Math.min(2,Math.floor
 const phaseStart=p=>addDays(S.startDate,Math.ceil(p*S.length/3));
 const detailOf=(a,k)=>a.steps?a.steps[phaseOf(k)]:(a.detail||"");
 const dueOn=(a,k)=>!a.freq||a.freq==="d"||a.freq.includes(String(parse(k).getDay()));
-const due=k=>S.actions.filter(a=>dueOn(a,k));
+const due=k=>{const P=planOf(k);return S.actions.filter(a=>P[a.id]&&(P[a.id].skip||P[a.id].add)?!P[a.id].skip:dueOn(a,k))};
 function ratio(k){const d=due(k),L=S.log[k]||{};return d.length?d.filter(a=>L[a.id]).length/d.length:0}
 function valid(k){
   const d=due(k),L=S.log[k]||{};
@@ -745,7 +848,7 @@ function render(){
   const p=phaseOf(today());
   if(p>(S.lastPhase||0)&&today()>=S.startDate){S.lastPhase=p;persist();setTimeout(()=>toast(`Phase ${p+1} : ${PHASES[p]}. Les charges montent.`),300)}
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
-  el0.innerHTML=tab==="today"?vToday():tab==="goals"?vGoals():vStats();
+  el0.innerHTML=tab==="today"?vToday():tab==="goals"?vGoals():tab==="agenda"?vAgenda():vStats();
   if(ritualDue()&&!document.getElementById("modal").classList.contains("on"))openModal(vRitual());
   el0.insertAdjacentHTML("beforeend",`<div class="sync" id="sync">${myBuild?"Version 1.0."+myBuild+" · ":""}${esc(syncState)}</div>`);
 }
@@ -782,14 +885,19 @@ function vToday(){
   ${S.profile&&S.profile.why?`<div class="why">« ${esc(S.profile.why)} »</div>`:""}
   ${S.goals.length?`<div class="vis">${S.goals.map(g=>`<div class="vcard" data-tabgo="goals">${goalVisual(g)}<div class="vov"></div><div class="vtx"><div class="vk">${esc(g.emoji)} ${esc(g.name)} · Niv. ${lvl(goalXP(g.id))}</div><div class="vt">${esc(g.target||"")}</div></div></div>`).join("")}</div>`:""}
   ${(()=>{const rv=reviewDue();return rv?`<div class="card banner" data-do="review:${rv}"><b>📊 Bilan de la semaine</b><div class="mut sm">${weekReview(rv).held}/7 jours tenus — appuie pour voir et ajuster</div></div>`:""})()}
+  ${(()=>{const u=upcoming(14);return u.length?`<div class="card banner" data-tabgo="agenda"><b>📅 À venir</b>${u.slice(0,3).map(x=>{const dd=diff(today(),x.o);return`<div class="mut sm">${(EVT[x.ev.type]||EVT.rdv).e} ${esc(x.ev.name)} · ${dd===0?"aujourd'hui":dd===1?"demain":"dans "+dd+" jours ("+parse(x.o).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})+")"}</div>`}).join("")}</div>`:""})()}
   ${md.length&&!before?`<div class="card banner" data-tabgo="stats"><b>📏 Mesure de la semaine</b><div class="mut sm">${md.map(x=>esc(x.metric.n)).join(" · ")} — appuie pour saisir</div></div>`:""}
   ${S.jokers[k]?`<div class="card jk">🛡️ <b>Jour minimum activé</b> — une seule promesse cochée suffit aujourd'hui. <button class="btn" data-do="unjoker" style="margin-left:6px">Annuler</button></div>`:""}`;
   if(!S.goals.length)return h+`<div class="card empty mut">Aucun objectif. Va dans « Objectifs » pour en créer un.</div>`;
-  h+=`<div class="seg"><button class="${S.view==="slot"?"on":""}" data-view="slot">Par moment</button><button class="${S.view==="goal"?"on":""}" data-view="goal">Par objectif</button></div>`;
+  h+=`<div class="seg"><button class="${S.view==="slot"?"on":""}" data-view="slot">Ma journée</button><button class="${S.view==="goal"?"on":""}" data-view="goal">Par objectif</button></div>`;
   if(!D.length)h+=`<div class="card empty mut">Rien de prévu aujourd'hui. Jour de repos.</div>`;
   else if(S.view==="slot"){
-    SLOT_ORDER.forEach(s=>{const list=D.filter(a=>(a.slot||"")===s).sort((a,b)=>(b.core-a.core)||((a.time||"99")<(b.time||"99")?-1:1));
-      if(list.length)h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[s]}</div><div class="mut sm">${list.filter(a=>L[a.id]).length}/${list.length}</div></div>${list.map(a=>actRow(a,k,L,true)).join("")}</div>`});
+    const items=D.map(a=>({t:sortTime(a,k),a})).concat(evTasks(k).map(e=>({t:e.time,e}))).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:((y.a&&y.a.core)-(x.a&&x.a.core)));
+    ["matin","midi","aprem","soir"].forEach(pp=>{const list=items.filter(x=>period(x.t)===pp);if(!list.length)return;
+      const dn=list.filter(x=>x.a?L[x.a.id]:L[x.e.key]).length;
+      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.length}</div></div>${list.map(x=>x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>`
+        :`<div class="tlr"><span class="tt ev">${x.t}</span><div class="act ${L[x.e.key]?"done":""}" data-evt="${x.e.key}"><div class="ck"></div><div class="lbl">${x.e.e} ${esc(x.e.label)}<div class="det">Date importante</div></div><div class="xp">+10</div></div></div>`).join("")}</div>`});
+    h+=`<div class="mut sm" style="text-align:center;margin:-4px 0 12px">Appuie sur une heure pour décaler une promesse · * = changé pour aujourd'hui</div>`;
   }else{
     S.goals.forEach(go=>{const acts=D.filter(a=>a.goalId===go.id).sort((a,b)=>b.core-a.core);if(!acts.length)return;
       h+=`<div class="card"><div class="goal-h"><div class="disp">${esc(go.emoji)} ${esc(go.name)}</div><div class="mut sm">Niv. ${lvl(goalXP(go.id))}</div></div>
@@ -908,10 +1016,18 @@ function run(cmd){
   if(c==="ritualskip"){S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();return}
   if(c==="ritualopen"){openModal(vRitual());return}
   if(c==="nextcycle"){nextCycle();return}
+  if(c==="mvadd"){const i=document.getElementById("mvT");if(i)i.value=addMin(i.value,+id);return}
+  if(c==="mvok"){const t=document.getElementById("mvT").value,sc=(document.querySelector('input[name="mvS"]:checked')||{}).value||"today";if(t){applyMove(id,k,sc,t)}closeModal();persist();render();return}
+  if(c==="mvpost"){postpone(id,k);closeModal();persist();render();return}
+  if(c==="tday"){typeDay=+id;render();return}
+  if(c==="evtype"){evType=id;render();return}
+  if(c==="evadd"){const n=(document.getElementById("evN").value||"").trim(),d=document.getElementById("evD").value;if(!n||!d){toast("Indique un nom et une date");return}
+    const prep=[...document.querySelectorAll(".chk input:checked")].map(x=>+x.value);S.events=S.events||[];S.events.push({id:uid(),type:evType,name:n,date:d,prep:prep.length?prep:EVT[evType].def});toast("Date ajoutée");persist();render();return}
+  if(c==="evdel"){S.events=(S.events||[]).filter(e=>e.id!==id);persist();render();return}
   if(c==="review"){rvEnd=id||k;openModal(vReview(rvEnd));return}
   if(c==="closemodal"){closeModal();return}
   if(c==="reviewseen"){S.reviews=S.reviews||{};S.reviews[id]=true;closeModal()}
-  if(c==="adj"){const a=S.actions.find(x=>x.id===id);if(a){if(x3==="f135")a.freq="135";if(x3==="bonus")a.core=false;if(x3==="ease"&&a.steps){const p=phaseOf(k);if(p>0)a.steps[p]=a.steps[p-1]}toast("Ajusté : "+a.label)}
+  if(c==="adj"){const a=S.actions.find(x=>x.id===id);if(a){if(x3==="f135")a.freq="135";if(x3&&x3.startsWith("rt-")){a.time=x3.slice(3,5)+":"+x3.slice(5,7);a.wt={}}if(x3==="bonus")a.core=false;if(x3==="ease"&&a.steps){const p=phaseOf(k);if(p>0)a.steps[p]=a.steps[p-1]}toast("Ajusté : "+a.label)}
     persist();const m=document.getElementById("modal");if(m.classList.contains("on"))openModal(vReview(rvEnd||k));render();return}
   if(c==="backup"){backupNow(false);return}
   if(c==="restore"){if(pendingRestore){S=migrate(pendingRestore);pendingRestore=null;persist();checkTrophies();render();toast("Données restaurées")}return}
@@ -953,6 +1069,8 @@ document.addEventListener("click",e=>{
   const nb=e.target.closest("nav button");if(nb){tab=nb.dataset.tab;render();scrollTo(0,0);return}
   const tg=e.target.closest("[data-tabgo]");if(tg){tab=tg.dataset.tabgo;render();scrollTo(0,0);return}
   const vw=e.target.closest("[data-view]");if(vw){S.view=vw.dataset.view;persist();render();return}
+  const mvb=e.target.closest("[data-move]");if(mvb){moveSheet(mvb.dataset.move,today());return}
+  const evb=e.target.closest("[data-evt]");if(evb){const k=today(),key=evb.dataset.evt,L=S.log[k]||(S.log[k]={});if(L[key])delete L[key];else{L[key]={x:10,g:null};toast("✓ C'est fait")}if(!Object.keys(L).length)delete S.log[k];persist();render();return}
   const tm=e.target.closest("[data-timer]");if(tm){startTimer(tm.dataset.timer);return}
   const md=e.target.closest("#modal");if(md&&e.target===md){closeModal();return}
   const t=e.target.closest("[data-toggle]");if(t){toggle(t.dataset.toggle);return}
@@ -971,6 +1089,7 @@ document.addEventListener("change",e=>{
     persist();if(f==="freq"||f==="slot")render()}}
   if(t.dataset.gart){const g=S.goals.find(x=>x.id===t.dataset.gart);if(g){g.art=t.value;if(S.photos[g.id])toast("Ta photo reste prioritaire : retire-la pour voir l'illustration");persist();render()}}
   if(t.dataset.photo&&t.files&&t.files[0]){const gid=t.dataset.photo;readPhoto(t.files[0],u=>{S.photos[gid]=u;persist();render();toast("Photo ajoutée")})}
+  if(t.dataset.wt){const a=S.actions.find(x=>x.id===t.dataset.wt);if(a&&t.value){a.wt=a.wt||{};a.wt[typeDay]=t.value;S.moves=S.moves||[];S.moves.push({d:today(),aid:a.id,kind:"wd",from:"",to:t.value});persist();render()}}
   if(t.dataset.pt){S.partner=S.partner||{};S.partner[t.dataset.pt]=t.value.trim();persist()}
   if(t.dataset.jr){S.journal=S.journal||{};const J=S.journal[t.dataset.jd]||(S.journal[t.dataset.jd]={});J[t.dataset.jr]=t.value.trim();persist();checkTrophies()}
   if(t.dataset.restore&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const n=JSON.parse(r.result);if(!n||!Array.isArray(n.actions)||!Array.isArray(n.goals))throw 0;pendingRestore=n;render()}catch(e){toast("Fichier invalide : choisis un fichier ascension-sauvegarde")}};r.readAsText(t.files[0])}
