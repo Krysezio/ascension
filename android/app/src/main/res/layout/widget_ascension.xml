@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:background="@drawable/widget_bg">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <TextView android:id="@+id/w_head" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:text="ASCENSION" android:textColor="#ECD082" android:textSize="12sp" android:textStyle="bold" android:letterSpacing="0.08"
+            android:singleLine="true" android:ellipsize="end"/>
+        <TextView android:id="@+id/w_streak" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#ECD082" android:textSize="13sp" android:textStyle="bold"/>
+    </LinearLayout>
+    <TextView android:id="@+id/w_sub" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="2dp" android:textColor="#948B78" android:textSize="12sp" android:singleLine="true" android:ellipsize="end"
+        android:text="Ouvre l'appli pour démarrer"/>
+    <TextView android:id="@+id/w_l1" style="@style/WidgetRow"/>
+    <TextView android:id="@+id/w_l2" style="@style/WidgetRow"/>
+    <TextView android:id="@+id/w_l3" style="@style/WidgetRow"/>
+    <TextView android:id="@+id/w_l4" style="@style/WidgetRow"/>
+    <TextView android:id="@+id/w_l5" style="@style/WidgetRow"/>
+</LinearLayout>

@@ -20,6 +20,13 @@
             </intent-filter>
         </activity>
 
+        <receiver android:name=".AscensionWidget" android:exported="true" android:label="Ascension">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/ascension_widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

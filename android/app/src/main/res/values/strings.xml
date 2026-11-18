@@ -4,4 +4,5 @@
     <string name="title_activity_main">Ascension</string>
     <string name="package_name">app.ascension.perso</string>
     <string name="custom_url_scheme">app.ascension.perso</string>
+    <string name="widget_description">Ton socle du jour, ta série et ta phase</string>
 </resources>
