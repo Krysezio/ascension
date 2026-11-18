@@ -32,16 +32,8 @@ jobs:
       - name: Synchroniser l'appli web dans le projet Android
         run: npx cap sync android
 
-      - name: Clé de signature (toujours la même, pour pouvoir mettre à jour sans perdre les données)
-        run: |
-          if [ -z "${{ secrets.ANDROID_KEYSTORE_B64 }}" ]; then echo "Secret ANDROID_KEYSTORE_B64 manquant" && exit 1; fi
-          echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/ascension.keystore"
-
       - name: Compiler
         working-directory: android
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ascension.keystore
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Renommer

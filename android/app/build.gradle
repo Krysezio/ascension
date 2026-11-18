@@ -18,18 +18,17 @@ android {
     }
     signingConfigs {
         release {
-            def ks = System.getenv("ANDROID_KEYSTORE_PATH")
-            if (ks) {
-                storeFile file(ks)
-                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                keyAlias "ascension"
-                keyPassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            }
+            // Clé de type « debug » (mots de passe standards Android) : sert uniquement à garder
+            // la même signature d'une version à l'autre pour pouvoir mettre à jour l'appli.
+            storeFile file("ascension-debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
         }
     }
     buildTypes {
         release {
-            if (System.getenv("ANDROID_KEYSTORE_PATH")) { signingConfig signingConfigs.release }
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
