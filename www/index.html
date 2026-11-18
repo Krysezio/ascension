@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0b0c">
+<meta name="theme-color" content="#080808">
 <title>Ascension — 90 jours</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0b0b0c;--card:#141416;--card2:#1b1b1e;--line:#26262b;--txt:#f3f3f4;--mut:#8b8b93;--acc:#e5312f;--acc2:#ff7a3d;--ok:#35c98a;--r:16px}
+:root{--bg:#080808;--card:#121110;--card2:#1a1815;--line:#2b261c;--txt:#f4efe2;--mut:#948b78;--acc:#c9a227;--acc2:#ecd082;--ok:#35c98a;--r:16px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 Inter,system-ui,sans-serif}
 body{--sat:var(--safe-area-inset-top,env(safe-area-inset-top));--sab:var(--safe-area-inset-bottom,env(safe-area-inset-bottom));padding:var(--sat) var(--safe-area-inset-right,env(safe-area-inset-right)) calc(84px + var(--sab)) var(--safe-area-inset-left,env(safe-area-inset-left))}
@@ -18,14 +18,14 @@ h1,h2,.disp{font-family:"Archivo Black",Inter,sans-serif;letter-spacing:.01em;ma
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
 .day{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc2);font-weight:700}
 .big{font-size:40px;line-height:1}
-.big span{color:var(--acc)}
+.big span{background:linear-gradient(90deg,#b8902a,#f1d27a 60%,#c9a227);-webkit-background-clip:text;background-clip:text;color:transparent}
 .ring{width:74px;height:74px;flex:none;position:relative}
 .ring svg{transform:rotate(-90deg)}
 .ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card{background:linear-gradient(180deg,#14120f,#0e0d0b);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
 .row{display:flex;align-items:center;gap:10px}
 .chips{display:flex;gap:8px;margin-bottom:12px}
-.chip{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.chip{flex:1;background:linear-gradient(180deg,#16140f,#0f0e0c);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
 .chip .disp{font-size:18px}
 .bar{height:8px;background:var(--card2);border-radius:99px;overflow:hidden;margin-top:8px}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:99px;transition:width .4s}
@@ -35,7 +35,7 @@ h1,h2,.disp{font-family:"Archivo Black",Inter,sans-serif;letter-spacing:.01em;ma
 .act:first-of-type{border-top:0}
 .ck{width:26px;height:26px;border-radius:50%;border:2px solid #3a3a41;flex:none;display:grid;place-items:center;transition:.15s}
 .act.done .ck{background:var(--acc);border-color:var(--acc)}
-.act.done .ck:after{content:"";width:7px;height:12px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.act.done .ck:after{content:"";width:7px;height:12px;border:solid #120f08;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
 .act.done .lbl{color:var(--mut);text-decoration:line-through}
 .det{font-size:12.5px;color:var(--mut);margin-top:2px;text-decoration:none}
 .lbl{flex:1}
@@ -47,13 +47,13 @@ nav button.on{color:var(--txt)} nav button.on .ic{color:var(--acc)}
 input,select{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 10px;font:inherit;width:100%}
 input:focus,select:focus{outline:none;border-color:var(--acc)}
 .btn{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:600 13px Inter;cursor:pointer;white-space:nowrap}
-.btn.p{background:var(--acc);border-color:var(--acc)}
+.btn.p{background:linear-gradient(135deg,#e2c062,#b8902a);border-color:#c9a227;color:#120f08}
 .btn.d{color:#ff8a8a}
-.btn.armed{background:#5a1414;border-color:var(--acc);color:#fff}
+.btn.armed{background:#4a3c12;border-color:var(--acc);color:#fff}
 .edit-a{display:grid;grid-template-columns:1fr 72px auto;gap:8px;margin-top:10px;padding-bottom:12px;border-bottom:1px solid var(--line)}
 .grid66{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
 .cell{aspect-ratio:1;border-radius:5px;background:var(--card2);display:grid;place-items:center;font-size:9px;color:#55555c}
-.cell.l1{background:#4a1716}.cell.l2{background:#8a201e}.cell.l3{background:var(--acc);color:#fff}
+.cell.l1{background:#3a3016}.cell.l2{background:#7a6322}.cell.l3{background:var(--acc);color:#111}
 .cell.today{outline:2px solid var(--acc2);outline-offset:1px}
 .cell.fut{opacity:.45}
 .skill{margin-top:10px}
@@ -68,35 +68,35 @@ label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
 .ob .prog i{display:block;height:100%;background:var(--acc);transition:width .3s}
 .ob h2{font-size:26px;line-height:1.15;margin-bottom:8px}
 .opt{display:block;width:100%;text-align:left;background:var(--card);border:1.5px solid var(--line);color:var(--txt);border-radius:14px;padding:15px 16px;font:600 15px Inter;margin-bottom:10px;cursor:pointer}
-.opt.sel{border-color:var(--acc);background:#2a1212}
+.opt.sel{border-color:var(--acc);background:#251f0e}
 .opt small{display:block;font-weight:400;color:var(--mut);margin-top:3px}
 .ob textarea{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:12px;font:inherit;width:100%;min-height:110px;resize:vertical}
 .ob .foot{margin-top:auto;padding-top:20px;display:flex;gap:10px}
 .ob .foot .btn{padding:14px;font-size:15px}
-.why{border-left:3px solid var(--acc);padding:10px 12px;background:var(--card);border-radius:0 12px 12px 0;margin-bottom:12px;font-style:italic;color:#d6d6da}
-.core{display:inline-block;font:800 9.5px Inter;letter-spacing:.08em;background:var(--acc);color:#fff;border-radius:5px;padding:2px 5px;margin-right:6px;vertical-align:2px}
+.why{border-left:3px solid var(--acc);color:var(--acc2)!important;padding:10px 12px;background:var(--card);border-radius:0 12px 12px 0;margin-bottom:12px;font-style:italic;color:#d6d6da}
+.core{display:inline-block;font:800 9.5px Inter;letter-spacing:.08em;background:var(--acc);color:#120f08;border-radius:5px;padding:2px 5px;margin-right:6px;vertical-align:2px}
 .seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:12px}
 .seg button{flex:1;background:none;border:0;color:var(--mut);font:600 13px Inter;padding:8px;border-radius:9px;cursor:pointer}
 .seg button.on{background:var(--card2);color:var(--txt)}
 .banner{cursor:pointer;border-color:var(--acc2)}
-.jk{border-color:#a8701c;background:#1d160c}
-.cell.jk{background:#a8701c;color:#fff}
+.jk{border-color:#6b6b6b;background:#161616}
+.cell.jk{background:#5b5b5b;color:#fff}
 .cell.ph{box-shadow:inset 3px 0 0 var(--acc2)}
 .opts3{grid-column:1/-1;display:grid;grid-template-columns:1.2fr 1.2fr .9fr;gap:6px}
 .opts3 select,.opts3 input{font-size:13px;padding:8px}
 .corebtn{grid-column:1/-1}
-.corebtn.on{border-color:var(--acc);color:#fff;background:#2a1212}
+.corebtn.on{border-color:var(--acc);color:#fff;background:#251f0e}
 .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .phases div{background:var(--card2);border-radius:10px;padding:8px;font-size:12px}
 .phases div b{display:block;font-size:12.5px}
 .phases div span{color:var(--mut)}
-.phases div.on{outline:1.5px solid var(--acc);background:#2a1212}
+.phases div.on{outline:1.5px solid var(--acc);background:#251f0e}
 .phases div.done{opacity:.55}
 .meas{padding:10px 0;border-top:1px solid var(--line)}
 .meas:first-of-type{border-top:0}
 .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .tgrid label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;gap:4px}
-.warn{margin-top:8px;padding:10px;border-radius:10px;background:#2a1212;border:1px solid var(--acc);font-size:13px}
+.warn{margin-top:8px;padding:10px;border-radius:10px;background:#251f0e;border:1px solid var(--acc);font-size:13px}
 .imp{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font:12px monospace;width:100%;min-height:70px}
 </style>
 </head>
@@ -336,7 +336,7 @@ function buildNotifs(){
   for(let i=0;i<NOTIF_DAYS;i++){
     const k=addDays(today(),i);if(k<S.startDate)continue;if(diff(S.startDate,k)>=S.length)break;
     const L=S.log[k]||{},D=due(k).filter(a=>!L[a.id]);let n=0;
-    const push=(at,title,body)=>{if(at.getTime()>now)out.push({id:(i+1)*100+(n++),title,body,largeBody:body,schedule:{at,allowWhileIdle:true},channelId:"rappels",smallIcon:"ic_stat_ascension",iconColor:"#E5312F",extra:{day:k}})};
+    const push=(at,title,body)=>{if(at.getTime()>now)out.push({id:(i+1)*100+(n++),title,body,largeBody:body,schedule:{at,allowWhileIdle:true},channelId:"rappels",smallIcon:"ic_stat_ascension",iconColor:"#C9A227",extra:{day:k}})};
     const line=a=>{const d=detailOf(a,k);return"• "+(a.core?"⭐ ":"")+a.label+(d?" — "+d:"")};
     ["matin","midi","aprem","soir"].forEach(s=>{const list=D.filter(a=>(a.slot||"")===s&&!a.time).sort((a,b)=>b.core-a.core);
       if(list.length)push(atTime(k,T[s]),`${SLOTS[s]} · ${list.length} promesse${list.length>1?"s":""}`,list.map(line).join("\n"))});
@@ -441,9 +441,9 @@ function vToday(){
   let h=`<div class="top"><div><div class="day">${over?"Programme terminé":before?"Départ le "+fmt(S.startDate):"Jour "+dayNum()+" / "+S.length+" · "+PHASES[ph]}</div>
     <h1 class="big">${nm?esc(nm)+", tiens":"Tiens"} tes<br><span>promesses.</span></h1>
     <div class="mut sm" style="margin-top:6px">Socle ${cDone}/${C.length} · Bonus ${bDone}/${B.length} · fin le ${fmt(end)}</div></div>
-    <div class="ring"><svg width="74" height="74"><circle cx="37" cy="37" r="31" stroke="#232327" stroke-width="7" fill="none"/>
+    <div class="ring"><svg width="74" height="74"><circle cx="37" cy="37" r="31" stroke="#221f18" stroke-width="7" fill="none"/>
     <circle cx="37" cy="37" r="31" stroke="url(#gr)" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${Cc}" stroke-dashoffset="${Cc*(1-r)}"/>
-    <defs><linearGradient id="gr"><stop offset="0" stop-color="#e5312f"/><stop offset="1" stop-color="#ff7a3d"/></linearGradient></defs></svg><b>${valid(k)?"✓":Math.round(r*100)+"%"}</b></div></div>
+    <defs><linearGradient id="gr"><stop offset="0" stop-color="#a87f1f"/><stop offset="1" stop-color="#f1d27a"/></linearGradient></defs></svg><b>${valid(k)?"✓":Math.round(r*100)+"%"}</b></div></div>
   <div class="chips"><div class="chip"><div class="disp">🔥 ${streak()}</div><div class="mut sm">jours d'affilée</div></div>
     <div class="chip"><div class="disp">${xp}</div><div class="mut sm">XP total</div></div>
     <div class="chip"><div class="disp">🛡️ ${jl}</div><div class="mut sm">jokers ce mois</div></div></div>
@@ -502,7 +502,7 @@ function vGoals(){
 
 function spark(vals){if(vals.length<2)return"";const mn=Math.min(...vals),mx=Math.max(...vals),w=120,hh=32,r=mx-mn||1;
   const pts=vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${(hh-3-(v-mn)/r*(hh-6)).toFixed(1)}`).join(" ");
-  return`<svg width="${w}" height="${hh}"><polyline points="${pts}" fill="none" stroke="#ff7a3d" stroke-width="2" stroke-linejoin="round"/></svg>`}
+  return`<svg width="${w}" height="${hh}"><polyline points="${pts}" fill="none" stroke="#ecd082" stroke-width="2" stroke-linejoin="round"/></svg>`}
 function vStats(){
   const k=today();let cells="";
   for(let i=0;i<S.length;i++){
@@ -562,7 +562,7 @@ function run(cmd){
     const m=S.measures[id]||(S.measures[id]=[]);const last=m[m.length-1];if(last&&last.d===k)last.v=v;else m.push({d:k,v});toast("Mesure enregistrée")}
   if(c==="notifon")S.notif.on=!S.notif.on;
   if(c==="exact"){LN&&LN.changeExactNotificationSetting().then(r=>{exactPerm=r.exact_alarm;scheduleSoon()}).catch(()=>{});return}
-  if(c==="testnotif"){if(LN)LN.schedule({notifications:[{id:9999,title:"Ascension",body:"Les rappels fonctionnent. Tiens tes promesses. ⚔️",schedule:{at:new Date(Date.now()+5000),allowWhileIdle:true},channelId:"rappels",smallIcon:"ic_stat_ascension",iconColor:"#E5312F"}]}).then(()=>toast("Notification dans 5 secondes"),()=>toast("Notifications non autorisées"));return}
+  if(c==="testnotif"){if(LN)LN.schedule({notifications:[{id:9999,title:"Ascension",body:"Les rappels fonctionnent. Tiens tes promesses. ⚔️",schedule:{at:new Date(Date.now()+5000),allowWhileIdle:true},channelId:"rappels",smallIcon:"ic_stat_ascension",iconColor:"#C9A227"}]}).then(()=>toast("Notification dans 5 secondes"),()=>toast("Notifications non autorisées"));return}
   if(c==="import"){const t=document.getElementById("imp");try{const n=JSON.parse(t.value);if(!n||!n.actions)throw 0;S=migrate(n);persist();render();toast("Données importées")}catch(e){toast("Texte invalide : copie-le depuis la version web")}return}
   if(c==="restart"){S.startDate=k;S.lastPhase=0;toast("Jour 1. C'est reparti.")}
   if(c==="redo"){ob={i:0,a:{...(S.profile&&S.profile.answers||{})}};render();scrollTo(0,0);return}
