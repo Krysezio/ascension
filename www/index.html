@@ -98,6 +98,19 @@ label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
 .tgrid label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;gap:4px}
 .warn{margin-top:8px;padding:10px;border-radius:10px;background:#251f0e;border:1px solid var(--acc);font-size:13px}
 .imp{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font:12px monospace;width:100%;min-height:70px}
+.vis{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px 12px;padding:0 16px 4px;scrollbar-width:none}
+.vis::-webkit-scrollbar{display:none}
+.vcard{position:relative;flex:0 0 78%;height:150px;border-radius:16px;overflow:hidden;border:1px solid #3a321f;background:radial-gradient(120% 90% at 85% 30%,#211b0f,#0b0a08);scroll-snap-align:start;cursor:pointer}
+.vcard:only-child{flex-basis:100%}
+.vart{position:absolute;right:-6px;top:6px;height:150px;width:150px;opacity:.95;filter:drop-shadow(0 0 10px rgba(212,171,60,.25))}
+.vbg{position:absolute;inset:0;background-size:cover;background-position:center}
+.vov{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,8,8,.92) 0%,rgba(8,8,8,.55) 55%,rgba(8,8,8,.1) 100%)}
+.vtx{position:absolute;left:14px;bottom:14px;right:40%}
+.vk{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc2);font-weight:700}
+.vt{font-family:"Archivo Black",Inter,sans-serif;font-size:17px;line-height:1.15;margin-top:4px;color:var(--txt)}
+.gvis{position:relative;height:120px;border-radius:12px;overflow:hidden;margin-top:10px;border:1px solid #3a321f;background:radial-gradient(120% 90% at 50% 30%,#211b0f,#0b0a08)}
+.gvis .vart{right:50%;transform:translateX(50%);top:4px;height:112px;width:112px}
+.gvis .vov{background:linear-gradient(0deg,rgba(8,8,8,.5),rgba(8,8,8,0))}
 </style>
 </head>
 <body>
@@ -108,6 +121,7 @@ label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
   <button data-tab="stats"><span class="ic">▦</span>Progression</button>
 </nav>
 <div class="toast" id="toast"></div>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="goldg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc8c"/><stop offset=".55" stop-color="#d4ab3c"/><stop offset="1" stop-color="#9c7418"/></linearGradient></defs></svg>
 <script src="lib/capacitor.js"></script>
 <script src="lib/local-notifications.js"></script>
 <script src="lib/preferences.js"></script>
@@ -136,9 +150,43 @@ function migrate(s){
   if(s.v===1)s={...defaults(),log:s.log||{}};
   if(s.v===2){s.v=3;s.jokers={};s.measures={};s.view="slot";s.lastPhase=0}
   if(!s.notif)s.notif={on:true,times:{matin:wakeToTime(s.profile&&s.profile.wake)||"06:30",midi:"12:30",aprem:"15:00",soir:"19:00"},bilan:"21:30",mesure:"10:00"};
+  s.photos=s.photos||{};
+  (s.goals||[]).forEach(g=>{if(!g.art)g.art=artFor(DOMAIN_ART[g.key]||"peak",s.profile&&s.profile.sex)});
   s.jokers=s.jokers||{};s.measures=s.measures||{};s.view=s.view||"slot";
   (s.actions||[]).forEach(a=>{if(a.freq==null)a.freq="d";if(a.slot==null)a.slot="";if(a.core==null)a.core=false;if(a.time==null)a.time=""});
   return s;
+}
+
+/* ---------- illustrations dorées (dessinées pour l'appli) ---------- */
+const P=(d,w)=>`<path d="${d}" stroke-width="${w||2.2}"/>`;
+const ART_SVG={
+ villa:[P("M18 150H182")+P("M30 150V96H96V150")+P("M22 96H104")+P("M96 150V70H176V150")+P("M88 70H184")+P("M108 82H164V112H108Z",1.6)+P("M136 82V112",1.4)+P("M42 108H84V136H42Z",1.6)+P("M30 162H150",1.4)+P("M44 170H136",1)+P("M168 150C166 126 170 108 178 96",1.8)+P("M178 96C168 92 160 96 154 102M178 96C185 89 192 90 195 95M178 96C176 86 182 78 190 76M178 96C170 84 160 82 152 86",1.4)],
+ chart:[P("M24 168H180")+P("M40 168V130H62V168Z")+P("M76 168V112H98V168Z")+P("M112 168V88H134V168Z")+P("M148 168V58H170V168Z")+P("M34 116L80 92L116 70L160 34",2.4)+P("M146 32H162V48",2.4)+'<circle cx="52" cy="64" r="18" stroke-width="2"/>'+P("M52 54V74M46 58C46 54 58 54 58 60C58 66 46 62 46 68C46 74 58 74 58 70",1.6)],
+ city:[P("M20 170H184")+P("M30 170V96H66V170")+P("M66 170V52H112V170")+P("M112 170V80H150V170")+P("M150 170V118H178V170")+P("M78 66V160M90 66V160M100 66V160",1)+P("M40 108H56M40 124H56M40 140H56",1)+P("M122 94H140M122 112H140M122 130H140M122 148H140",1)+P("M89 52V36",1.6)],
+ torso_h:[P("M38 34C62 22 82 20 100 20C118 20 138 22 162 34")+P("M38 34C30 64 42 92 58 120C64 150 66 182 68 214")+P("M162 34C170 64 158 92 142 120C136 150 134 182 132 214")+P("M54 58C70 76 90 78 98 66",1.8)+P("M146 58C130 76 110 78 102 66",1.8)+P("M100 72V196",1.4)+P("M78 94C76 132 78 170 86 204",1.6)+P("M122 94C124 132 122 170 114 204",1.6)+P("M80 106Q90 110 98 106M102 106Q110 110 120 106",1.6)+P("M80 134Q90 138 98 134M102 134Q110 138 120 134",1.6)+P("M81 162Q90 166 98 162M102 162Q110 166 119 162",1.6)+'<circle cx="100" cy="184" r="2.6" stroke-width="1.4"/>'+P("M64 150C76 174 88 196 96 214M136 150C124 174 112 196 104 214",1.4)],
+ torso_f:[P("M62 22C56 48 62 70 72 96C82 122 74 142 64 170C58 190 54 204 52 216")+P("M138 22C144 48 138 70 128 96C118 122 126 142 136 170C142 190 146 204 148 216")+P("M68 56C74 78 92 82 98 70",1.6)+P("M132 56C126 78 108 82 102 70",1.6)+P("M70 86Q100 94 130 86",1.4)+P("M100 104V172",1.2)+P("M86 118Q93 121 99 118M101 118Q107 121 114 118",1.3)+P("M87 140Q93 143 99 140M101 140Q107 143 113 140",1.3)+'<circle cx="100" cy="162" r="2.4" stroke-width="1.3"/>'+P("M76 150C84 172 92 192 97 210M124 150C116 172 108 192 103 210",1.2)],
+ runner:['<circle cx="122" cy="40" r="12" stroke-width="2.2"/>'+P("M116 56L100 104L72 128L56 160",3)+P("M100 104L124 132L114 176",3)+P("M112 66L138 88L162 80",2.6)+P("M110 66L84 76L70 96",2.6)+P("M20 184H184",1.4)+P("M28 120H52M20 136H44M36 104H56",1.2)],
+ mountain:[P("M14 170L74 82L108 128L136 92L188 170Z")+P("M74 82L62 104L74 98L86 110L96 112",1.6)+P("M136 92L126 108L138 104L148 112",1.6)+'<circle cx="150" cy="46" r="18" stroke-width="2"/>'+P("M14 182H188",1.2)+P("M40 192H160",1)],
+ book:[P("M100 64C80 52 52 50 28 56V164C52 158 80 160 100 172C120 160 148 158 172 164V56C148 50 120 52 100 64Z")+P("M100 64V172",1.6)+P("M42 82C58 80 74 82 88 88M42 102C58 100 74 102 88 108M42 122C58 120 74 122 88 128M112 88C126 82 142 80 158 82M112 108C126 102 142 100 158 102M112 128C126 122 142 120 158 122",1.1)+P("M100 40V22M74 44L64 28M126 44L136 28",1.6)],
+ crown:[P("M36 140L28 66L68 104L100 46L132 104L172 66L164 140Z")+P("M36 158H164",2.4)+P("M36 140H164",1.4)+'<circle cx="100" cy="46" r="6" stroke-width="1.8"/><circle cx="28" cy="66" r="5" stroke-width="1.6"/><circle cx="172" cy="66" r="5" stroke-width="1.6"/>'+P("M86 120L100 106L114 120L100 134Z",1.4)],
+ family:['<circle cx="74" cy="54" r="16" stroke-width="2.2"/><circle cx="134" cy="92" r="12" stroke-width="2.2"/>'+P("M50 190V120C50 90 98 90 98 120V190",2.4)+P("M116 190V140C116 116 152 116 152 140V190",2.2)+P("M98 132C108 140 114 140 118 138",2)+P("M20 192H184",1.2)],
+ people:['<circle cx="70" cy="66" r="16" stroke-width="2.2"/><circle cx="130" cy="66" r="16" stroke-width="2.2"/>'+P("M38 176V128C38 100 102 100 102 128V176",2.2)+P("M98 128C98 100 162 100 162 128V176",2.2)+P("M84 140C94 150 106 150 116 140",1.8)],
+ home:[P("M26 102L100 40L174 102")+P("M44 88V172H156V88")+P("M86 172V128H114V172")+P("M58 108H78V128H58ZM122 108H142V128H122Z",1.6)+P("M136 56V40H152V70",1.8)+P("M20 172H180",1.4)],
+ sunrise:[P("M14 150H186")+P("M46 150A54 54 0 0 1 154 150")+P("M100 76V54M60 92L46 78M140 92L154 78M36 124H16M164 124H184",2)+P("M40 168H160M64 182H136",1.3)],
+ target:['<circle cx="96" cy="108" r="66" stroke-width="2"/><circle cx="96" cy="108" r="44" stroke-width="1.8"/><circle cx="96" cy="108" r="22" stroke-width="1.6"/><circle cx="96" cy="108" r="4" stroke-width="2"/>'+P("M96 108L172 32",2.4)+P("M160 30L174 30L174 44M172 32L186 22",2)],
+ chain:[P("M22 96C10 108 10 128 22 140C34 152 54 152 66 140L80 126")+P("M88 110L100 96C112 84 112 64 100 52C88 40 68 40 56 52L42 66",2.2)+P("M112 144L100 156C88 168 88 188 100 196",2.2)+P("M120 92L134 78C146 66 166 66 178 78C190 90 190 110 178 122L164 136",2.2)+P("M100 104L108 92M112 112L124 108M96 116L92 128",1.6)],
+ peak:[P("M100 30L178 174H146L100 88L54 174H22Z")+P("M100 122L126 174H74Z",1.8)]
+};
+const ART_NAMES={villa:"Villa",chart:"Finances",city:"Patrimoine",torso_h:"Abdos (homme)",torso_f:"Abdos (femme)",runner:"Course",mountain:"Sérénité",book:"Lecture",crown:"Confiance",family:"Famille",people:"Relations",home:"Foyer",sunrise:"Matin",target:"Concentration",chain:"Briser les chaînes",peak:"Ascension"};
+const PRESET_ART={rev:"villa",fin:"chart",pat:"city",lose:"torso",muscle:"torso",fit:"runner",calm:"mountain",learn:"book",conf:"crown",kids:"family",rel:"people",home:"home",morning:"sunrise",focus:"target",habit:"chain"};
+const DOMAIN_ART={money:"villa",body:"torso",mind:"mountain",family:"family",disc:"target"};
+const artFor=(k,sex)=>k==="torso"?(sex==="f"?"torso_f":"torso_h"):k;
+const artSvg=(k,cls)=>`<svg class="${cls||"art"}" viewBox="0 0 200 220" fill="none" stroke="url(#goldg)" stroke-linecap="round" stroke-linejoin="round">${(ART_SVG[k]||ART_SVG.peak).join("")}</svg>`;
+function goalVisual(g){const ph=S.photos&&S.photos[g.id];return ph?`<div class="vbg" style="background-image:url('${ph}')"></div>`:artSvg(g.art||"peak","vart")}
+function readPhoto(file,cb){
+  const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const W=900,sc=Math.min(1,W/im.width),c=document.createElement("canvas");
+    c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",.78))};im.onerror=()=>toast("Image illisible");im.src=r.result};
+  r.readAsDataURL(file);
 }
 
 /* ---------- questionnaire d'entrée ---------- */
@@ -229,6 +277,7 @@ const DOMAINS={
 const OBST={disp:"Choisir LA priorité du jour avant 8 h",motiv:"Relire mon pourquoi le matin",screen:"Pas de réseaux sociaux avant midi",tired:"Au lit avant 23 h",time:"Bloquer le créneau du lendemain dans l'agenda"};
 const STEPS=[
   {id:"name",q:"On commence. Comment tu t'appelles ?",type:"text",ph:"Ton prénom"},
+  {id:"sex",q:"Tu es…",sub:"Pour adapter les visuels et les programmes physiques.",type:"single",opts:[["h","Un homme"],["f","Une femme"]]},
   {id:"domains",q:"Quels domaines veux-tu transformer en 90 jours ?",sub:"Choisis ceux qui comptent vraiment.",type:"multi",min:1,max:5,opts:Object.entries(DOMAINS).map(([k,d])=>[k,d.emoji+" "+d.name])},
   {id:"presets",q:"Quel est ton objectif dans chaque domaine ?",sub:"Choisis-en un par domaine, puis précise ton chiffre si tu veux.",type:"presets"},
   {id:"level",q:"Où en es-tu aujourd'hui ?",sub:"Ça règle les répétitions et durées de départ. Elles montent ensuite à chaque phase.",type:"single",opts:[["low","Je pars de zéro","On commence léger pour tenir"],["mid","J'ai des bases mais je suis irrégulier","Rythme standard"],["high","Je suis déjà discipliné","On monte l'intensité"]]},
@@ -260,10 +309,10 @@ function buildPlan(A){
     actions.push({id:uid(),goalId:gid,label,detail:steps?"":(det||""),steps,xp,freq:freq||"d",slot:guessSlot(label),time:"",core:c})};
   const wake=A.wake&&A.wake!=="none";
   ds.forEach(k=>{const d=DOMAINS[k],pk=(A.presets||{})[k]||Object.keys(d.presets)[0],p=d.presets[pk],id=uid(),pr=((A.targets||{})[k]||"").trim();
-    goals.push({id,key:k,name:d.name,emoji:d.emoji,target:p.t+(pr?" — "+pr:""),metric:{n:p.m[0],u:p.m[1]}});
+    goals.push({id,key:k,name:d.name,emoji:d.emoji,target:p.t+(pr?" — "+pr:""),metric:{n:p.m[0],u:p.m[1]},art:artFor(PRESET_ART[pk]||"peak",A.sex)});
     p.a.slice(0,Math.min(p.a.length,per)).forEach(([l,det,xp,fr],i)=>add(id,l,det,xp,fr,i===0))});
   const extra=[];if(wake)extra.push(["Debout à "+A.wake,true]);(A.obst||[]).forEach(o=>extra.push([OBST[o],false]));
-  if(extra.length){let g=goals.find(x=>x.key==="disc");if(!g){g={id:uid(),key:"disc",name:"Discipline",emoji:"⚔️",target:"Tenir mes engagements",metric:{n:"Engagements tenus",u:"/7"}};goals.push(g)}
+  if(extra.length){let g=goals.find(x=>x.key==="disc");if(!g){g={id:uid(),key:"disc",name:"Discipline",emoji:"⚔️",target:"Tenir mes engagements",metric:{n:"Engagements tenus",u:"/7"},art:"target"};goals.push(g)}
     extra.slice(0,3).forEach(([l,c])=>add(g.id,l,"",10,"d",c))}
   return{goals,actions};
 }
@@ -300,7 +349,7 @@ function obNext(){
   if(st.type==="presets")saveTargets();
   if(!canNext()){if(st.type==="presets")toast("Choisis un objectif pour chaque domaine");return}
   if(st.type==="recap"){const p=buildPlan(ob.a);S.goals=p.goals;S.actions=p.actions;
-    S.profile={name:ob.a.name,why:ob.a.why,level:ob.a.level,time:ob.a.time,wake:ob.a.wake,obst:ob.a.obst||[],domains:ob.a.domains,answers:ob.a};
+    S.profile={name:ob.a.name,sex:ob.a.sex,why:ob.a.why,level:ob.a.level,time:ob.a.time,wake:ob.a.wake,obst:ob.a.obst||[],domains:ob.a.domains,answers:ob.a};
     S.startDate=ob.a.start==="monday"?nextMonday():today();S.lastPhase=0;{const t=wakeToTime(ob.a.wake);if(t)S.notif.times.matin=t}S.onboarded=true;ob=null;tab="today";persist();render();toast("Jour 1. Phase Fondation. Pas d'excuse.");return}
   ob.i++;render();scrollTo(0,0);
 }
@@ -451,6 +500,7 @@ function vToday(){
     <div class="mut sm" style="text-align:right">${g.next?`${g.next-xp} XP avant<br><b style="color:var(--txt)">${g.nextName}</b>`:"Grade maximal"}</div></div>
     <div class="bar"><i style="width:${pct}%"></i></div></div>
   ${S.profile&&S.profile.why?`<div class="why">« ${esc(S.profile.why)} »</div>`:""}
+  ${S.goals.length?`<div class="vis">${S.goals.map(g=>`<div class="vcard" data-tabgo="goals">${goalVisual(g)}<div class="vov"></div><div class="vtx"><div class="vk">${esc(g.emoji)} ${esc(g.name)} · Niv. ${lvl(goalXP(g.id))}</div><div class="vt">${esc(g.target||"")}</div></div></div>`).join("")}</div>`:""}
   ${md.length&&!before?`<div class="card banner" data-tabgo="stats"><b>📏 Mesure de la semaine</b><div class="mut sm">${md.map(x=>esc(x.metric.n)).join(" · ")} — appuie pour saisir</div></div>`:""}
   ${S.jokers[k]?`<div class="card jk">🛡️ <b>Jour minimum activé</b> — une seule promesse cochée suffit aujourd'hui. <button class="btn" data-do="unjoker" style="margin-left:6px">Annuler</button></div>`:""}`;
   if(!S.goals.length)return h+`<div class="card empty mut">Aucun objectif. Va dans « Objectifs » pour en créer un.</div>`;
@@ -480,6 +530,10 @@ function vGoals(){
     h+=`<div class="card"><div style="display:grid;grid-template-columns:56px 1fr;gap:8px">
       <input data-g="${go.id}" data-f="emoji" value="${esc(go.emoji)}" maxlength="4" style="text-align:center">
       <input data-g="${go.id}" data-f="name" value="${esc(go.name)}" placeholder="Domaine (ex. Argent)"></div>
+      <div class="gvis">${goalVisual(go)}<div class="vov"></div></div>
+      <div class="row" style="gap:8px;margin-top:8px"><select data-gart="${go.id}" style="flex:1">${Object.entries(ART_NAMES).map(([k,n])=>`<option value="${k}" ${go.art===k?"selected":""}>Illustration : ${n}</option>`).join("")}</select>
+      <label class="btn" style="cursor:pointer">📷 Ma photo<input type="file" accept="image/*" data-photo="${go.id}" hidden></label>
+      ${S.photos[go.id]?`<button class="btn d" data-do="unphoto:${go.id}">✕</button>`:""}</div>
       <label class="f">Résultat visé</label><input data-g="${go.id}" data-f="target" value="${esc(go.target)}" placeholder="Ex. Gagner 10 000 €/mois">
       <label class="f">Mesure de la semaine</label><div style="display:grid;grid-template-columns:1fr 80px;gap:8px">
       <input data-gm="${go.id}" data-f="n" value="${esc(m.n)}" placeholder="Ex. Poids"><input data-gm="${go.id}" data-f="u" value="${esc(m.u)}" placeholder="Unité"></div>
@@ -560,13 +614,14 @@ function run(cmd){
   if(c==="unjoker")delete S.jokers[k];
   if(c==="meas"){const i=document.querySelector(`[data-mv="${id}"]`),v=i&&num(i.value);if(v===null){toast("Saisis un nombre");return}
     const m=S.measures[id]||(S.measures[id]=[]);const last=m[m.length-1];if(last&&last.d===k)last.v=v;else m.push({d:k,v});toast("Mesure enregistrée")}
+  if(c==="unphoto"){delete S.photos[id];toast("Photo retirée")}
   if(c==="notifon")S.notif.on=!S.notif.on;
   if(c==="exact"){LN&&LN.changeExactNotificationSetting().then(r=>{exactPerm=r.exact_alarm;scheduleSoon()}).catch(()=>{});return}
   if(c==="testnotif"){if(LN)LN.schedule({notifications:[{id:9999,title:"Ascension",body:"Les rappels fonctionnent. Tiens tes promesses. ⚔️",schedule:{at:new Date(Date.now()+5000),allowWhileIdle:true},channelId:"rappels",smallIcon:"ic_stat_ascension",iconColor:"#C9A227"}]}).then(()=>toast("Notification dans 5 secondes"),()=>toast("Notifications non autorisées"));return}
-  if(c==="import"){const t=document.getElementById("imp");try{const n=JSON.parse(t.value);if(!n||!n.actions)throw 0;S=migrate(n);persist();render();toast("Données importées")}catch(e){toast("Texte invalide : copie-le depuis la version web")}return}
+  if(c==="import"){const t=document.getElementById("imp");try{const n=JSON.parse(t.value);if(!n||!n.actions)throw 0;const ph=S.photos;S=migrate(n);if(!Object.keys(S.photos).length)S.photos=ph;persist();render();toast("Données importées")}catch(e){toast("Texte invalide : copie-le depuis la version web")}return}
   if(c==="restart"){S.startDate=k;S.lastPhase=0;toast("Jour 1. C'est reparti.")}
   if(c==="redo"){ob={i:0,a:{...(S.profile&&S.profile.answers||{})}};render();scrollTo(0,0);return}
-  if(c==="copy"){const t=JSON.stringify(S);navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>toast("Données copiées"),()=>toast("Copie refusée par le navigateur"));return}
+  if(c==="copy"){const t=JSON.stringify({...S,photos:{}});navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>toast("Données copiées"),()=>toast("Copie refusée par le navigateur"));return}
   persist();render();
 }
 document.addEventListener("click",e=>{
@@ -596,6 +651,8 @@ document.addEventListener("change",e=>{
     else if(f==="detail"){if(a.steps)a.steps[phaseOf(today())]=t.value.trim();else a.detail=t.value.trim()}
     else a[f]=f==="label"?t.value.trim():t.value;
     persist();if(f==="freq"||f==="slot")render()}}
+  if(t.dataset.gart){const g=S.goals.find(x=>x.id===t.dataset.gart);if(g){g.art=t.value;if(S.photos[g.id])toast("Ta photo reste prioritaire : retire-la pour voir l'illustration");persist();render()}}
+  if(t.dataset.photo&&t.files&&t.files[0]){const gid=t.dataset.photo;readPhoto(t.files[0],u=>{S.photos[gid]=u;persist();render();toast("Photo ajoutée")})}
   if(t.dataset.nt){S.notif.times[t.dataset.nt]=t.value||S.notif.times[t.dataset.nt];persist()}
   if(t.dataset.nb){S.notif[t.dataset.nb]=t.value||S.notif[t.dataset.nb];persist()}
   if(t.dataset.set){const v=t.dataset.set==="length"?Math.max(9,Math.min(365,+t.value||90)):t.value;if(v){S[t.dataset.set]=v;persist();render()}}
