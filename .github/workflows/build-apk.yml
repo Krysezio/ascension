@@ -30,6 +30,9 @@ jobs:
       - name: Dépendances
         run: npm ci
 
+      - name: Numéro de version dans l'appli
+        run: echo "{\"build\": ${{ github.run_number }}}" > www/version.json
+
       - name: Synchroniser l'appli web dans le projet Android
         run: npx cap sync android
 

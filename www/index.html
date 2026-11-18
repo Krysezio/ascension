@@ -111,6 +111,7 @@ label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
 .gvis{position:relative;height:120px;border-radius:12px;overflow:hidden;margin-top:10px;border:1px solid #3a321f;background:radial-gradient(120% 90% at 50% 30%,#211b0f,#0b0a08)}
 .gvis .vart{right:50%;transform:translateX(50%);top:4px;height:112px;width:112px}
 .gvis .vov{background:linear-gradient(0deg,rgba(8,8,8,.5),rgba(8,8,8,0))}
+.upd{display:flex;align-items:center;justify-content:space-between;gap:10px;border-color:var(--acc)}
 </style>
 </head>
 <body>
@@ -369,9 +370,9 @@ async function init(){
   try{if(Prefs){const r=await Prefs.get({key:"state"});if(r&&r.value)s=JSON.parse(r.value)}}catch(e){}
   S=migrate(s||lsGet());
   syncState=NATIVE?"Données enregistrées sur ce téléphone":"Aperçu navigateur — données locales";
-  render();scheduleSoon();
+  render();scheduleSoon();checkUpdate(true);
 }
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S&&!ob){render();scheduleSoon()}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S&&!ob){render();scheduleSoon();checkUpdate(false)}});
 
 /* ---------- rappels programmés (notifications locales Android) ---------- */
 const NOTIF_DAYS=14;
@@ -420,6 +421,33 @@ function notifStateHtml(){
   if(exactPerm==="denied"||exactPerm==="prompt")h+=`<button class="btn" style="margin-top:8px;width:100%" data-do="exact">Autoriser les rappels à l'heure exacte</button>`;
   return h;
 }
+
+
+/* ---------- mise à jour automatique (dernière version publiée sur GitHub) ---------- */
+const REPO="Krysezio/ascension";
+const Updater=NATIVE&&capacitorExports.registerPlugin?capacitorExports.registerPlugin("AppUpdater"):null;
+let myBuild=0,upd=null,updBusy=false,lastCheck=0;
+async function checkUpdate(force){
+  if(!Updater)return;if(!force&&Date.now()-lastCheck<6*3600e3)return;lastCheck=Date.now();
+  try{
+    if(!myBuild){const v=await fetch("version.json",{cache:"no-store"}).then(r=>r.json());myBuild=+v.build||0}
+    const r=await fetch(`https://api.github.com/repos/${REPO}/releases/latest`,{headers:{Accept:"application/vnd.github+json"}});if(!r.ok)return;
+    const j=await r.json(),b=+String(j.tag_name||"").split(".").pop()||0,a=(j.assets||[]).find(x=>/\.apk$/i.test(x.name));
+    if(a&&b>myBuild){upd={build:b,url:a.browser_download_url,tag:j.tag_name};
+      if(S&&S.notifiedBuild!==b&&LN){S.notifiedBuild=b;persist();
+        LN.schedule({notifications:[{id:9001,title:"Ascension : nouvelle version "+j.tag_name.replace(/^v/,""),body:"Ouvre l'appli et appuie sur « Mettre à jour ».",schedule:{at:new Date(Date.now()+1500),allowWhileIdle:true},channelId:"rappels",smallIcon:"ic_stat_ascension",iconColor:"#C9A227"}]}).catch(()=>{})}
+      if(!ob)render()}
+    else upd=null;
+  }catch(e){}
+}
+async function doUpdate(){
+  if(!Updater||!upd||updBusy)return;
+  try{const c=await Updater.canInstall();if(!c.allowed){toast("Autorise Ascension à installer des applis, puis reviens et appuie à nouveau");await Updater.openInstallSettings();return}}catch(e){}
+  updBusy=true;render();toast("Téléchargement de la mise à jour…");
+  try{await Updater.downloadAndInstall({url:upd.url})}catch(e){toast(String(e&&e.message||e))}
+  updBusy=false;render();
+}
+function updBanner(){return upd?`<div class="card upd"><div><b>⬆️ Nouvelle version ${esc(upd.tag.replace(/^v/,""))}</b><div class="mut sm">Tes données sont conservées.</div></div><button class="btn p" data-do="update" ${updBusy?"disabled":""}>${updBusy?"Téléchargement…":"Mettre à jour"}</button></div>`:""}
 
 /* ---------- logique ---------- */
 const entries=()=>Object.values(S.log).flatMap(d=>Object.values(d));
@@ -487,7 +515,7 @@ function vToday(){
   const Cc=2*Math.PI*31,end=addDays(S.startDate,S.length-1),over=diff(S.startDate,k)>=S.length;
   const before=k<S.startDate,nm=S.profile&&S.profile.name,ph=phaseOf(k);
   const jl=JOKERS_PER_MONTH-jokersUsed(k),md=measuresDue();
-  let h=`<div class="top"><div><div class="day">${over?"Programme terminé":before?"Départ le "+fmt(S.startDate):"Jour "+dayNum()+" / "+S.length+" · "+PHASES[ph]}</div>
+  let h=updBanner()+`<div class="top"><div><div class="day">${over?"Programme terminé":before?"Départ le "+fmt(S.startDate):"Jour "+dayNum()+" / "+S.length+" · "+PHASES[ph]}</div>
     <h1 class="big">${nm?esc(nm)+", tiens":"Tiens"} tes<br><span>promesses.</span></h1>
     <div class="mut sm" style="margin-top:6px">Socle ${cDone}/${C.length} · Bonus ${bDone}/${B.length} · fin le ${fmt(end)}</div></div>
     <div class="ring"><svg width="74" height="74"><circle cx="37" cy="37" r="31" stroke="#221f18" stroke-width="7" fill="none"/>
@@ -594,7 +622,9 @@ function vStats(){
     <div class="row" style="margin-top:12px;flex-wrap:wrap">
       <button class="btn" data-confirm="restart">Recommencer aujourd'hui</button>
       <button class="btn" data-do="copy">Copier mes données</button>
-      <button class="btn" data-confirm="redo">Refaire le questionnaire</button></div>
+      <button class="btn" data-confirm="redo">Refaire le questionnaire</button>
+      ${Updater?`<button class="btn" data-do="checkupd">Rechercher une mise à jour</button>`:""}</div>
+    ${Updater?`<div class="mut sm" style="margin-top:6px">Version installée : 1.0.${myBuild||"?"}</div>`:""}
     <div class="mut sm" style="margin-top:8px">« Recommencer » remet le jour 1 à aujourd'hui sans effacer ton XP ni tes mesures.</div>
     <label class="f">Importer des données (copiées depuis la version web)</label><textarea id="imp" class="imp" placeholder="Colle ici le texte copié"></textarea>
     <button class="btn" style="margin-top:8px" data-confirm="import">Importer et remplacer</button></div>`;
@@ -614,6 +644,8 @@ function run(cmd){
   if(c==="unjoker")delete S.jokers[k];
   if(c==="meas"){const i=document.querySelector(`[data-mv="${id}"]`),v=i&&num(i.value);if(v===null){toast("Saisis un nombre");return}
     const m=S.measures[id]||(S.measures[id]=[]);const last=m[m.length-1];if(last&&last.d===k)last.v=v;else m.push({d:k,v});toast("Mesure enregistrée")}
+  if(c==="update"){doUpdate();return}
+  if(c==="checkupd"){checkUpdate(true).then(()=>toast(upd?"Nouvelle version disponible":"Tu as la dernière version"));return}
   if(c==="unphoto"){delete S.photos[id];toast("Photo retirée")}
   if(c==="notifon")S.notif.on=!S.notif.on;
   if(c==="exact"){LN&&LN.changeExactNotificationSetting().then(r=>{exactPerm=r.exact_alarm;scheduleSoon()}).catch(()=>{});return}
