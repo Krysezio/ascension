@@ -1,6 +1,10 @@
 package app.ascension.perso;
 
 import android.Manifest;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.database.Cursor;
@@ -119,5 +123,52 @@ public class ToolsPlugin extends Plugin {
         } catch (Exception ex) {
             call.reject("Lecture de l'agenda impossible : " + ex.getMessage());
         }
+    }
+
+    private static int authenticators() {
+        return Build.VERSION.SDK_INT >= 30
+                ? BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                : BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+    }
+
+    @PluginMethod
+    public void canAuth(PluginCall call) {
+        int r = BiometricManager.from(getContext()).canAuthenticate(authenticators());
+        JSObject o = new JSObject();
+        o.put("available", r == BiometricManager.BIOMETRIC_SUCCESS);
+        o.put("code", r);
+        call.resolve(o);
+    }
+
+    /** Empreinte, visage ou code du téléphone. */
+    @PluginMethod
+    public void authenticate(PluginCall call) {
+        final String reason = call.getString("reason", "Déverrouiller Ascension");
+        getActivity().runOnUiThread(() -> {
+            try {
+                BiometricPrompt bp = new BiometricPrompt((FragmentActivity) getActivity(), ContextCompat.getMainExecutor(getContext()),
+                        new BiometricPrompt.AuthenticationCallback() {
+                            @Override
+                            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                                JSObject o = new JSObject();
+                                o.put("ok", true);
+                                call.resolve(o);
+                            }
+
+                            @Override
+                            public void onAuthenticationError(int code, CharSequence msg) {
+                                call.reject(String.valueOf(msg), String.valueOf(code));
+                            }
+                        });
+                BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
+                        .setTitle("Ascension")
+                        .setSubtitle(reason)
+                        .setAllowedAuthenticators(authenticators())
+                        .build();
+                bp.authenticate(info);
+            } catch (Exception e) {
+                call.reject("Verrouillage indisponible : " + e.getMessage());
+            }
+        });
     }
 }

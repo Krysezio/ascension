@@ -160,6 +160,12 @@ nav button{max-width:110px;font-size:11px}
 .dream{border:1px solid #3a321f;border-radius:16px;overflow:hidden;margin-bottom:12px;background:#0e0d0b}
 .dvis{position:relative;height:170px;background:radial-gradient(120% 90% at 85% 30%,#211b0f,#0b0a08)}
 .dvis .vart{height:165px;width:165px}
+body.discreet .amt,body.discreet .wi input:not(:focus){filter:blur(7px)}
+.eye{flex:none;font-size:12px;padding:7px 10px}
+.wg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.wg div{background:var(--card2);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:2px}.wg b{font-size:14px}
+.wi{display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}.wi:first-of-type{border-top:0}
+.wi input{padding:7px;text-align:right}
+.lock{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.lock svg{width:86px;height:86px}
 </style>
 </head>
 <body>
@@ -204,6 +210,7 @@ function migrate(s){
   if(!s.notif)s.notif={on:true,times:{matin:wakeToTime(s.profile&&s.profile.wake)||"06:30",midi:"12:30",aprem:"15:00",soir:"19:00"},bilan:"21:30",mesure:"10:00"};
   s.photos=s.photos||{};
   (s.goals||[]).forEach(g=>{if(!g.art)g.art=artFor(DOMAIN_ART[g.key]||"peak",s.profile&&s.profile.sex)});
+  s.wealth=s.wealth||{items:[],hist:[]};s.lock=s.lock||{mode:"off"};
   s.dreams=s.dreams||[];s.cal=s.cal||{on:false};
   s.dayPlan=s.dayPlan||{};s.moves=s.moves||[];s.events=s.events||[];
   s.trophies=s.trophies||{};s.ritual=s.ritual||{};s.prio=s.prio||{};s.partner=s.partner||{};s.cycle=s.cycle||1;
@@ -427,6 +434,7 @@ async function init(){
   S=migrate(s||lsGet());
   syncState=NATIVE?"Données enregistrées sur ce téléphone":"Aperçu navigateur — données locales";
   try{const v=await fetch("version.json",{cache:"no-store"}).then(r=>r.json());myBuild=+v.build||0}catch(e){}
+  if(lockMode()==="app")locked=true;applyDiscreet();
   if(S.timer&&timerLeft()<=0){const T=S.timer;S.timer=null;markDone([T.aid],T.day)}
   render();scheduleSoon();checkUpdate(true);setupNotifActions();checkTrophies();autoBackup();syncWidget();loadCalendar(true);
   if(S.timer)showTimer();
@@ -454,6 +462,7 @@ function buildNotifs(){
     {const rc=due(k).filter(a=>a.core&&!L[a.id]);if(rc.length&&S.notif.relance&&!S.jokers[k])push(atTime(k,S.notif.relance),`⚠️ Il te reste ${rc.length} socle${rc.length>1?"s":""}`,rc.map(a=>"• "+a.label).join("\n")+"\nTiens ta série 🔥",rc.map(a=>a.id))}
     if(!(i===0&&valid(k))){const core=due(k).filter(a=>a.core);
       push(atTime(k,S.notif.bilan),"🌙 Bilan du jour",core.length?"Ton socle : "+core.map(a=>a.label).join(", ")+". Coche ce que tu as tenu, puis 3 lignes au journal.":"Coche ce que tu as tenu, puis 3 lignes au journal.")}
+    if(k.slice(8)==="01"&&(S.wealth.items||[]).length)push(atTime(k,"10:00"),"💰 Relevé de patrimoine du mois","Mets à jour tes montants dans Vision → Patrimoine (2 minutes).");
     if(parse(k).getDay()===0&&metrics.length)push(atTime(k,S.notif.mesure),"📏 Mesure de la semaine",metrics.map(g=>g.metric.n).join(" · "));
     if(i===NOTIF_DAYS-1)push(atTime(k,"20:00"),"Ascension","Ouvre l'appli pour recharger tes rappels des deux prochaines semaines.");
   }
@@ -603,6 +612,7 @@ function vReview(endDay){
   <div class="bar" style="margin:4px 0 12px"><i style="width:${pct}%"></i></div><div class="mut" style="margin-bottom:14px">${verdict}</div>
   ${R.best.length?`<div class="card"><b>💪 Tes points forts</b>${R.best.map(x=>`<div class="rv"><span>${esc(x.a.label)}</span><span class="xp">${x.dn}/${x.du}</span></div>`).join("")}</div>`:""}
   ${R.worst.length?`<div class="card"><b>⚠️ À travailler</b>${R.worst.map(x=>`<div class="rv"><span>${esc(x.a.label)}</span><span class="mut">${x.dn}/${x.du}</span></div>`).join("")}</div>`:""}
+  ${(S.wealth.items||[]).length?`<div class="mut sm" style="margin:0 0 10px">💰 Patrimoine net : ${amt(wealthNow().net)}${wealthDelta(1)!==null?` (${wealthDelta(1)>=0?"+":"−"}${amt(Math.abs(wealthDelta(1)))} sur 1 mois)`:""}</div>`:""}
   ${R.meas.length?`<div class="card"><b>📏 Mesures</b>${R.meas.map(m=>`<div class="rv"><span>${esc(m.g.emoji)} ${esc(m.g.metric.n)} : ${fnum(m.last.v)} ${esc(m.g.metric.u||"")}</span><span class="mut">${m.has?(m.dl>0?"+":"")+fnum(m.dl)+" en 7 j":"1re mesure"}</span></div>`).join("")}</div>`:""}
   ${R.mv.length?`<div class="mut sm" style="margin:0 0 10px">🔀 ${R.mv.filter(m=>m.kind==="today").length} décalage(s) exceptionnel(s), ${R.mv.filter(m=>m.kind==="postpone").length} report(s), ${R.mv.filter(m=>m.kind!=="today"&&m.kind!=="postpone").length} changement(s) de routine cette semaine.</div>`:""}
   ${R.nextWeek.length?`<div class="card"><b>📅 La semaine prochaine</b>${R.nextWeek.map(x=>`<div class="rv"><span>${(EVT[x.ev.type]||EVT.rdv).e} ${esc(x.ev.name)}</span><span class="mut">${parse(x.o).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</span></div>`).join("")}<div class="mut sm" style="margin-top:6px">Les tâches de préparation apparaîtront automatiquement dans tes journées.</div></div>`:""}
@@ -799,7 +809,7 @@ function vEvents(){
   if(!h)h=`<div class="mut sm">Aucune date. Ajoute anniversaires, fêtes (fête des mères, Saint-Valentin…) et rendez-vous importants.</div>`;
   return h+`<div class="card evf" style="margin-top:12px"><b>+ Ajouter une date</b>
    <div class="segs">${Object.entries(EVT).map(([k,t])=>`<button class="${evType===k?"on":""}" data-do="evtype:${k}">${t.e} ${t.n}</button>`).join("")}</div>
-   <label class="f">${evType==="anniv"?"Prénom":"Nom de l'événement"}</label><input id="evN" placeholder="${evType==="anniv"?"Ex. Linoa":evType==="fete"?"Ex. Fête des mères":"Ex. Rendez-vous banque"}">
+   <label class="f">${evType==="anniv"?"Prénom":"Nom de l'événement"}</label><input id="evN" placeholder="${evType==="anniv"?"Ex. Maman":evType==="fete"?"Ex. Fête des mères":"Ex. Rendez-vous banque"}">
    <label class="f">Date${evType==="rdv"?"":" (l'année ne compte pas, c'est chaque année)"}</label><input type="date" id="evD">
    <label class="f">Rappels dans la routine</label><div class="chk">${[14,7,3,1,0].map(b=>`<label><input type="checkbox" value="${b}" ${EVT[evType].def.includes(b)?"checked":""}> ${b?"J-"+b:"Jour J"}</label>`).join("")}</div>
    <div class="mut sm" style="margin-top:6px">${[14,7,3,1,0].filter(b=>EVT[evType].def.includes(b)).map(b=>`${b?"J-"+b:"Jour J"} : « ${EVT[evType].prep[b].replace("{n}","…")} »`).join("<br>")}</div>
@@ -840,17 +850,21 @@ const eur=n=>Math.round(n).toLocaleString("fr-FR")+" €";
 function monthsLeft(d){if(!d)return null;const a=new Date(),b=parse(d.length===7?d+"-01":d);return Math.max(1,(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth())}
 function dreamNeed(dr){const rest=Math.max(0,(+dr.price||0)-(+dr.saved||0)),m=monthsLeft(dr.date);return{rest,m,perMonth:m?rest/m:null,pct:dr.price?Math.min(100,(+dr.saved||0)/dr.price*100):0}}
 function dreamVisual(dr){const ph=S.photos&&S.photos["d:"+dr.id];return ph?`<div class="vbg" style="background-image:url('${ph}')"></div>`:artSvg(dr.art||"villa","vart")}
-let dreamEdit=null;
+let dreamEdit=null,visTab="dreams";
 function vVision(){
   const D=S.dreams||[],tot=D.reduce((s,d)=>s+(+d.price||0),0),sav=D.reduce((s,d)=>s+(+d.saved||0),0),pm=D.reduce((s,d)=>s+(dreamNeed(d).perMonth||0),0);
-  let h=`<div class="top"><div><div class="day">Ce pour quoi tu te lèves</div><h1 class="big">Vision</h1></div></div>`;
-  if(D.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><div><div class="mut sm">Total de tes rêves</div><div class="disp" style="font-size:24px">${eur(tot)}</div></div><div style="text-align:right"><div class="mut sm">Déjà réuni</div><div class="disp" style="font-size:18px;color:var(--acc2)">${eur(sav)}</div></div></div>
+  let h=`<div class="top"><div><div class="day">Ce pour quoi tu te lèves</div><h1 class="big">Vision</h1></div><button class="btn eye" data-do="discreet">${S.discreet?"👁 Afficher":"🙈 Masquer"}</button></div>
+  <div class="seg"><button class="${visTab!=="wealth"?"on":""}" data-do="vtab:dreams">Mes rêves</button><button class="${visTab==="wealth"?"on":""}" data-do="vtab:wealth">Patrimoine</button></div>`;
+  if(visTab==="wealth")return h+vWealth();
+  if(D.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><div><div class="mut sm">Total de tes rêves</div><div class="disp" style="font-size:24px">${amt(tot)}</div></div><div style="text-align:right"><div class="mut sm">Déjà réuni</div><div class="disp" style="font-size:18px;color:var(--acc2)">${amt(sav)}</div></div></div>
     <div class="bar"><i style="width:${tot?Math.min(100,sav/tot*100):0}%"></i></div>
-    ${pm?`<div class="mut sm" style="margin-top:8px">Pour tout financer à temps : <b style="color:var(--txt)">${eur(pm)} par mois</b> à mettre de côté.</div>`:""}
+    ${pm?`<div class="mut sm" style="margin-top:8px">Pour tout financer à temps : <b style="color:var(--txt)">${amt(pm)} par mois</b> à mettre de côté.</div>`:""}
+    ${(S.wealth.items||[]).length?`<div class="mut sm" style="margin-top:4px">Ton patrimoine net (${amt(wealthNow().net)}) couvre ${tot?Math.max(0,Math.round(wealthNow().net/tot*100)):0} % de tes rêves.</div>`:`<div class="mut sm" style="margin-top:4px">Renseigne ton patrimoine pour voir quelle part de tes rêves il couvre déjà.</div>`}
     <a class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${coachLink("vision")}">🤖 Construire mon plan de financement avec Claude</a></div>`;
   D.forEach(dr=>{const n=dreamNeed(dr);
-    h+=`<div class="dream"><div class="dvis">${dreamVisual(dr)}<div class="vov"></div><div class="vtx" style="right:30%"><div class="vk">${dr.date?"Objectif "+parse(dr.date.length===7?dr.date+"-01":dr.date).toLocaleDateString("fr-FR",{month:"long",year:"numeric"}):"Sans date"}</div><div class="vt" style="font-size:20px">${esc(dr.name)}</div><div class="mut sm">${eur(+dr.price||0)}</div></div></div>
-    <div style="padding:12px 14px"><div class="row" style="justify-content:space-between"><span class="mut sm">${eur(+dr.saved||0)} réunis · ${Math.round(n.pct)} %</span><span class="mut sm">${n.perMonth!==null?eur(n.perMonth)+"/mois":""}</span></div>
+    h+=`<div class="dream"><div class="dvis">${dreamVisual(dr)}<div class="vov"></div><div class="vtx" style="right:30%"><div class="vk">${dr.date?"Objectif "+parse(dr.date.length===7?dr.date+"-01":dr.date).toLocaleDateString("fr-FR",{month:"long",year:"numeric"}):"Sans date"}</div><div class="vt" style="font-size:20px">${esc(dr.name)}</div><div class="mut sm">${amt(+dr.price||0)}</div></div></div>
+    <div style="padding:12px 14px"><div class="row" style="justify-content:space-between"><span class="mut sm">${amt(+dr.saved||0)} réunis · ${Math.round(n.pct)} %</span><span class="mut sm">${n.perMonth!==null?amt(n.perMonth)+"/mois":""}</span></div>
+    ${(()=>{const e=dreamEta(dr);return e?`<div class="mut sm" style="margin-top:6px">Au rythme actuel de ton patrimoine : atteint en <b style="color:${dr.date&&key(e).slice(0,7)>dr.date.slice(0,7)?"#f0b46a":"var(--acc2)"}">${e.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b>${dr.date?` (objectif ${parse(dr.date.length===7?dr.date+"-01":dr.date).toLocaleDateString("fr-FR",{month:"long",year:"numeric"})})`:""}</div>`:""})()}
     <div class="bar"><i style="width:${n.pct}%"></i></div>
     ${dr.why?`<div class="why" style="margin:10px 0 0">« ${esc(dr.why)} »</div>`:""}
     <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input inputmode="decimal" data-dsave="${dr.id}" placeholder="+ montant mis de côté" style="flex:1;min-width:140px"><button class="btn p" data-do="dsave:${dr.id}">Ajouter</button>
@@ -878,12 +892,71 @@ function coachPrompt(kind){
   if(R.mv.length)t+=` ${R.mv.length} décalages ou reports cette semaine.`;
   const ms=S.goals.filter(g=>g.metric&&g.metric.n&&(S.measures[g.id]||[]).length);if(ms.length)t+=`\nMesures : `+ms.map(g=>{const m=S.measures[g.id];return`${g.metric.n} ${fnum(m[0].v)} → ${fnum(m[m.length-1].v)} ${g.metric.u||""}`}).join(" ; ");
   const D=S.dreams||[];if(D.length)t+=`\n\nMES RÊVES\n`+D.map(d=>{const n=dreamNeed(d);return`- ${d.name} : ${eur(+d.price||0)}, ${eur(+d.saved||0)} réunis${d.date?", pour "+d.date:""}${n.perMonth?` (${eur(n.perMonth)}/mois nécessaires)`:""}`}).join("\n");
+  if((S.wealth.items||[]).length){const W=wealthNow(),p=wealthPace();t+=`\n\nMON PATRIMOINE\nNet ${eur(W.net)} (actifs ${eur(W.assets)}, dettes ${eur(W.debts)}, cash disponible ${eur(W.cash)})${p!==null?`, rythme ${eur(p)}/mois`:""}.\n`+Object.entries(WCAT).map(([c,x])=>{const v=S.wealth.items.filter(i=>i.cat===c).reduce((s,i)=>s+(+i.value||0),0);return v?`- ${x.n} : ${eur(v)}`:""}).filter(Boolean).join("\n")}
   const J=Object.keys(S.journal||{}).sort().slice(-3).map(d=>{const x=S.journal[d];return`${d} : gagné « ${x.w||""} », raté « ${x.f||""} », à corriger « ${x.c||""} »`});if(J.length)t+=`\n\nMON JOURNAL RÉCENT\n`+J.join("\n");
   t+=kind==="vision"?`\n\nConstruis-moi un plan de financement réaliste et ambitieux pour ces rêves : revenus à atteindre, épargne mensuelle, leviers concrets (activité, investissements), jalons à 3, 6 et 12 mois, et ce que je dois ajouter dès demain dans mes promesses quotidiennes.`
     :`\n\nAnalyse ma semaine sans complaisance : 3 constats, 3 ajustements concrets à faire dans mes promesses (quoi, quand, combien), et la seule chose à ne pas lâcher la semaine prochaine.`;
   return t.slice(0,6000);
 }
 const coachLink=kind=>"claude://claude.ai/new?q="+encodeURIComponent(coachPrompt(kind));
+
+/* ---------- patrimoine ---------- */
+const WCAT={cash:{n:"Trésorerie",e:"💶",liq:true},placement:{n:"Placements",e:"📈"},immo:{n:"Immobilier",e:"🏠"},societe:{n:"Parts de sociétés",e:"🏢"},bien:{n:"Véhicules et biens",e:"🚗"},
+  credit:{n:"Crédits immobiliers",e:"🏦",debt:true},pret:{n:"Autres prêts",e:"📄",debt:true},cca:{n:"Comptes courants à rembourser",e:"🔁",debt:true}};
+const amt=n=>`<span class="amt">${eur(n)}</span>`;
+const ym=k=>(k||today()).slice(0,7);
+function wealthNow(){
+  const I=(S.wealth&&S.wealth.items)||[];let assets=0,debts=0,cash=0;
+  I.forEach(i=>{const v=+i.value||0,c=WCAT[i.cat]||{};if(c.debt)debts+=v;else{assets+=v;if(c.liq)cash+=v}});
+  return{assets,debts,cash,net:assets-debts};
+}
+function snapWealth(){S.wealth=S.wealth||{items:[],hist:[]};const w=wealthNow(),m=ym(),H=S.wealth.hist,last=H[H.length-1],row={m,...w};if(last&&last.m===m)H[H.length-1]=row;else H.push(row)}
+function wealthPace(){const H=(S.wealth&&S.wealth.hist)||[];if(H.length<2)return null;const a=H[Math.max(0,H.length-7)],b=H[H.length-1];
+  const mo=(+b.m.slice(0,4)-+a.m.slice(0,4))*12+(+b.m.slice(5)-+a.m.slice(5));return mo>0?(b.net-a.net)/mo:null}
+function wealthDelta(n){const H=(S.wealth&&S.wealth.hist)||[];if(H.length<2)return null;const b=H[H.length-1];
+  const tgt=(()=>{const y=+b.m.slice(0,4),mm=+b.m.slice(5)-n;const d=new Date(y,mm-1,1);return d.getFullYear()+"-"+z(d.getMonth()+1)})();
+  const a=[...H].reverse().find(x=>x.m<=tgt);return a?b.net-a.net:null}
+const wealthDue=()=>S.wealth&&S.wealth.items&&S.wealth.items.length&&!(S.wealth.hist||[]).some(h=>h.m===ym());
+let wCat="cash";
+function vWealth(){
+  const W=wealthNow(),I=(S.wealth&&S.wealth.items)||[],H=(S.wealth&&S.wealth.hist)||[],D=S.dreams||[],tot=D.reduce((s,d)=>s+(+d.price||0),0);
+  const d1=wealthDelta(1),d12=wealthDelta(12),pace=wealthPace();
+  let h=`<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="mut sm">Patrimoine net</div><div class="disp" style="font-size:26px">${amt(W.net)}</div>
+    <div class="mut sm">${d1!==null?`${d1>=0?"+":"−"}${amt(Math.abs(d1))} sur 1 mois`:"Évolution visible dès le 2e mois"}${d12!==null?` · ${d12>=0?"+":"−"}${amt(Math.abs(d12))} sur 12 mois`:""}</div></div>${spark(H.map(x=>x.net))}</div>
+    <div class="wg"><div><span class="mut sm">Actifs</span><b>${amt(W.assets)}</b></div><div><span class="mut sm">Dettes</span><b>${amt(W.debts)}</b></div><div><span class="mut sm">Cash disponible</span><b style="color:var(--acc2)">${amt(W.cash)}</b></div></div>
+    ${tot?`<div class="mut sm" style="margin-top:10px">Ton patrimoine net couvre <b style="color:var(--txt)">${Math.max(0,Math.round(W.net/tot*100))} %</b> de tes rêves${pace!==null?` · rythme : ${pace>=0?"+":"−"}${amt(Math.abs(pace))}/mois`:""}.</div>`:""}
+    ${wealthDue()?`<div class="warn" style="margin-top:10px">Relevé du mois à faire : mets tes montants à jour puis enregistre.</div>`:""}
+    <button class="btn ${wealthDue()?"p":""}" style="width:100%;margin-top:10px" data-do="wsnap">Enregistrer le relevé de ${new Date().toLocaleDateString("fr-FR",{month:"long"})}</button></div>`;
+  Object.entries(WCAT).forEach(([c,t])=>{const L=I.filter(i=>i.cat===c);if(!L.length)return;const sum=L.reduce((s,i)=>s+(+i.value||0),0);
+    h+=`<div class="card"><div class="row" style="justify-content:space-between"><b>${t.e} ${t.n}</b><span class="mut">${t.debt?"−":""}${amt(sum)}</span></div>
+    ${L.map(i=>`<div class="wi"><span>${esc(i.name)}</span><input inputmode="decimal" data-wv="${i.id}" value="${i.value||""}"><button class="btn d" data-confirm="wdel:${i.id}">✕</button></div>`).join("")}</div>`});
+  h+=`<div class="card"><b>+ Ajouter une ligne</b><div class="segs" style="margin-top:8px">${Object.entries(WCAT).map(([c,t])=>`<button class="${wCat===c?"on":""}" data-do="wcat:${c}">${t.e} ${t.n}</button>`).join("")}</div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px"><input id="wN" placeholder="${{cash:"Ex. Compte courant, livret A",placement:"Ex. Assurance-vie, PEA",immo:"Ex. Résidence principale",societe:"Ex. Ma holding (valeur prudente)",bien:"Ex. Voiture",credit:"Ex. Prêt maison (capital restant)",pret:"Ex. Prêt perso",cca:"Ex. Compte courant d'associé"}[wCat]}"><input id="wV" inputmode="decimal" placeholder="Montant €"></div>
+    <button class="btn p" style="width:100%;margin-top:8px" data-do="wadd">Ajouter</button>
+    <div class="mut sm" style="margin-top:8px">Saisis la valeur réaliste de revente, pas la valeur théorique. Pour les crédits : le capital restant dû.</div></div>`;
+  return h;
+}
+function dreamEta(dr){const pace=wealthPace(),W=wealthNow();if(!pace||pace<=0)return null;const rest=Math.max(0,(+dr.price||0)-Math.max(+dr.saved||0,0));
+  const m=Math.ceil(rest/pace);const d=new Date();d.setMonth(d.getMonth()+m);return d}
+
+/* ---------- confidentialité : verrouillage et mode discret ---------- */
+let locked=false,visionOpen=false,hiddenAt=0;
+const lockMode=()=>(S&&S.lock&&S.lock.mode)||"off";
+async function unlock(target){
+  if(!Tools){locked=false;visionOpen=true;render();return}
+  try{await Tools.authenticate({reason:target==="vision"?"Accéder à ta Vision et ton patrimoine":"Déverrouiller Ascension"});
+    if(target==="vision")visionOpen=true;else locked=false;render()}catch(e){toast("Déverrouillage annulé")}
+}
+async function setLock(mode){
+  if(mode!=="off"&&Tools){try{const c=await Tools.canAuth();if(!c.available){toast("Active d'abord un verrouillage d'écran (code, empreinte) sur ton téléphone");render();return}
+    await Tools.authenticate({reason:"Confirmer l'activation du verrouillage"})}catch(e){toast("Activation annulée");render();return}}
+  S.lock={mode};visionOpen=true;persist();render();toast(mode==="off"?"Verrouillage désactivé":"Verrouillage activé");
+}
+function applyDiscreet(){document.body.classList.toggle("discreet",!!(S&&S.discreet))}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hiddenAt=Date.now()}else if(S&&hiddenAt&&Date.now()-hiddenAt>60e3){if(lockMode()==="app")locked=true;if(lockMode()!=="off")visionOpen=false;hiddenAt=0;render()}});
+const lockScreen=t=>`<div class="lock"><svg viewBox="0 0 512 512"><polygon points="256,92 280,138 168,404 124,404" fill="url(#goldg)"/><polygon points="256,92 388,404 344,404 232,138" fill="url(#goldg)"/><polyline points="190,338 256,256 322,338" fill="none" stroke="url(#goldg)" stroke-width="24"/></svg>
+  <div class="disp" style="font-size:22px;margin:14px 0 6px">${t==="vision"?"Vision et patrimoine protégés":"Ascension est verrouillée"}</div><div class="mut sm">Empreinte, visage ou code du téléphone.</div>
+  <button class="btn p" style="margin-top:18px;padding:13px 26px" data-do="unlock:${t}">🔓 Déverrouiller</button></div>`;
 
 /* ---------- logique ---------- */
 const entries=()=>Object.values(S.log).flatMap(d=>Object.values(d));
@@ -929,12 +1002,13 @@ function render(){
   if(!S)return;
   const el0=document.getElementById("app"),nav=document.getElementById("nav");
   if(!S.onboarded||ob){if(!ob)ob={i:0,a:{...(S.profile&&S.profile.answers||{})}};nav.style.display="none";el0.innerHTML=vOnboard();return}
-  nav.style.display="";
+  nav.style.display="";applyDiscreet();
+  if(locked){nav.style.display="none";el0.innerHTML=lockScreen("app");return}
   const p=phaseOf(today());
   if(p>(S.lastPhase||0)&&today()>=S.startDate){S.lastPhase=p;persist();setTimeout(()=>toast(`Phase ${p+1} : ${PHASES[p]}. Les charges montent.`),300)}
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
-  el0.innerHTML=tab==="today"?vToday():tab==="goals"?vGoals():tab==="agenda"?vAgenda():tab==="vision"?vVision():vStats();
-  if(ritualDue()&&!document.getElementById("modal").classList.contains("on"))openModal(vRitual());
+  el0.innerHTML=tab==="today"?vToday():tab==="goals"?vGoals():tab==="agenda"?vAgenda():tab==="vision"?(lockMode()!=="off"&&!visionOpen?lockScreen("vision"):vVision()):vStats();
+  if(ritualDue()&&!locked&&!document.getElementById("modal").classList.contains("on"))openModal(vRitual());
   el0.insertAdjacentHTML("beforeend",`<div class="sync" id="sync">${myBuild?"Version 1.0."+myBuild+" · ":""}${esc(syncState)}</div>`);
 }
 function updSync(){const s=document.getElementById("sync");if(s)s.textContent=(myBuild?"Version 1.0."+myBuild+" · ":"")+syncState}
@@ -971,6 +1045,7 @@ function vToday(){
   ${S.goals.length||(S.dreams||[]).length?`<div class="vis">${(S.dreams||[]).map(d=>`<div class="vcard" data-tabgo="vision">${dreamVisual(d)}<div class="vov"></div><div class="vtx"><div class="vk">✦ Rêve · ${Math.round(dreamNeed(d).pct)} %</div><div class="vt">${esc(d.name)}</div></div></div>`).join("")}${S.goals.map(g=>`<div class="vcard" data-tabgo="goals">${goalVisual(g)}<div class="vov"></div><div class="vtx"><div class="vk">${esc(g.emoji)} ${esc(g.name)} · Niv. ${lvl(goalXP(g.id))}</div><div class="vt">${esc(g.target||"")}</div></div></div>`).join("")}</div>`:""}
   ${(()=>{const rv=reviewDue();return rv?`<div class="card banner" data-do="review:${rv}"><b>📊 Bilan de la semaine</b><div class="mut sm">${weekReview(rv).held}/7 jours tenus — appuie pour voir et ajuster</div></div>`:""})()}
   ${(()=>{const u=upcoming(14);return u.length?`<div class="card banner" data-tabgo="agenda"><b>📅 À venir</b>${u.slice(0,3).map(x=>{const dd=diff(today(),x.o);return`<div class="mut sm">${(EVT[x.ev.type]||EVT.rdv).e} ${esc(x.ev.name)} · ${dd===0?"aujourd'hui":dd===1?"demain":"dans "+dd+" jours ("+parse(x.o).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})+")"}</div>`}).join("")}</div>`:""})()}
+  ${wealthDue()&&new Date().getDate()<=10?`<div class="card banner" data-do="vtab:wealth"><b>💰 Relevé de patrimoine du mois</b><div class="mut sm">2 minutes pour mettre tes montants à jour</div></div>`:""}
   ${md.length&&!before?`<div class="card banner" data-tabgo="stats"><b>📏 Mesure de la semaine</b><div class="mut sm">${md.map(x=>esc(x.metric.n)).join(" · ")} — appuie pour saisir</div></div>`:""}
   ${S.jokers[k]?`<div class="card jk">🛡️ <b>Jour minimum activé</b> — une seule promesse cochée suffit aujourd'hui. <button class="btn" data-do="unjoker" style="margin-left:6px">Annuler</button></div>`:""}`;
   if(!S.goals.length)return h+`<div class="card empty mut">Aucun objectif. Va dans « Objectifs » pour en créer un.</div>`;
@@ -1076,6 +1151,11 @@ function vStats(){
     <div class="mut sm" style="margin:8px 0">À chaque créneau, un rappel liste les promesses du moment pas encore cochées. Une promesse avec une heure précise a son propre rappel.</div>
     <div id="nstate">${notifStateHtml()}</div>
     ${LN?`<button class="btn" style="margin-top:8px;width:100%" data-do="testnotif">Tester une notification (dans 5 s)</button>`:""}</div>
+  <div class="card"><div class="disp" style="font-size:16px">Confidentialité</div>
+    <label class="f">Verrouillage (empreinte, visage ou code du téléphone)</label>
+    <div class="segs">${[["off","Désactivé"],["vision","Vision et patrimoine"],["app","Toute l'appli"]].map(([m,l])=>`<button class="${lockMode()===m?"on":""}" data-do="lock:${m}">${l}</button>`).join("")}</div>
+    <div class="row" style="justify-content:space-between;margin-top:6px"><span class="mut sm">Mode discret (montants floutés)</span><button class="btn ${S.discreet?"p":""}" data-do="discreet">${S.discreet?"Activé":"Désactivé"}</button></div>
+    <div class="mut sm" style="margin-top:8px">L'appli se reverrouille après 1 minute en arrière-plan. Attention : le fichier de sauvegarde contient tes montants, garde-le dans un espace privé.</div></div>
   <div class="card"><div class="disp" style="font-size:16px">Partenaire de suivi</div>
     <div class="mut sm" style="margin:6px 0 4px">Quelqu'un à qui envoyer ton bilan du dimanche en un appui (WhatsApp ou SMS). Rien n'est envoyé sans ton appui.</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input data-pt="name" value="${esc((S.partner||{}).name||"")}" placeholder="Prénom"><input data-pt="phone" inputmode="tel" value="${esc((S.partner||{}).phone||"")}" placeholder="06 12 34 56 78"></div></div>
@@ -1102,6 +1182,15 @@ function run(cmd){
   if(c==="ritualskip"){S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();return}
   if(c==="ritualopen"){openModal(vRitual());return}
   if(c==="nextcycle"){nextCycle();return}
+  if(c==="unlock"){unlock(id);return}
+  if(c==="lock"){setLock(id);return}
+  if(c==="discreet"){S.discreet=!S.discreet;persist();applyDiscreet();render();return}
+  if(c==="vtab"){visTab=id;tab="vision";render();scrollTo(0,0);return}
+  if(c==="wcat"){wCat=id;render();return}
+  if(c==="wadd"){const n=(document.getElementById("wN").value||"").trim(),v=num(document.getElementById("wV").value);if(!n||v===null){toast("Nom et montant");return}
+    S.wealth.items.push({id:uid(),cat:wCat,name:n,value:Math.abs(v)});snapWealth();persist();render();toast("Ajouté");return}
+  if(c==="wdel"){S.wealth.items=S.wealth.items.filter(i=>i.id!==id);snapWealth();persist();render();return}
+  if(c==="wsnap"){snapWealth();persist();render();toast("Relevé enregistré");return}
   if(c==="calon"){connectCalendar();return}
   if(c==="caloff"){S.cal={on:false};calCache={};persist();render();return}
   if(c==="calrefresh"){loadCalendar(true).then(()=>toast("Agenda actualisé"));return}
@@ -1187,6 +1276,7 @@ document.addEventListener("change",e=>{
   if(t.dataset.gart){const g=S.goals.find(x=>x.id===t.dataset.gart);if(g){g.art=t.value;if(S.photos[g.id])toast("Ta photo reste prioritaire : retire-la pour voir l'illustration");persist();render()}}
   if(t.dataset.photo&&t.files&&t.files[0]){const gid=t.dataset.photo;readPhoto(t.files[0],u=>{S.photos[gid]=u;persist();render();toast("Photo ajoutée")})}
   if(t.dataset.wt){const a=S.actions.find(x=>x.id===t.dataset.wt);if(a&&t.value){a.wt=a.wt||{};a.wt[typeDay]=t.value;S.moves=S.moves||[];S.moves.push({d:today(),aid:a.id,kind:"wd",from:"",to:t.value});persist();render()}}
+  if(t.dataset.wv){const i=S.wealth.items.find(x=>x.id===t.dataset.wv),v=num(t.value);if(i&&v!==null){i.value=Math.abs(v);snapWealth();persist();render()}}
   if(t.dataset.dphoto&&t.files&&t.files[0]){const id=t.dataset.dphoto;readPhoto(t.files[0],u=>{S.photos["d:"+id]=u;persist();render();toast("Photo ajoutée")})}
   if(t.dataset.pt){S.partner=S.partner||{};S.partner[t.dataset.pt]=t.value.trim();persist()}
   if(t.dataset.jr){S.journal=S.journal||{};const J=S.journal[t.dataset.jd]||(S.journal[t.dataset.jd]={});J[t.dataset.jr]=t.value.trim();persist();checkTrophies()}
