@@ -2,13 +2,18 @@
   "name": "ascension",
   "version": "1.0.0",
   "private": true,
-  "description": "Ascension — programme 90 jours (appli Android personnelle)",
-  "scripts": { "sync": "cap sync android" },
+  "description": "Ascension \u2014 programme 90 jours (appli Android personnelle)",
+  "scripts": {
+    "sync": "cap sync android"
+  },
   "dependencies": {
     "@capacitor/android": "8.6.2",
     "@capacitor/core": "8.6.2",
     "@capacitor/local-notifications": "8.3.1",
-    "@capacitor/preferences": "8.0.1"
+    "@capacitor/preferences": "8.0.1",
+    "@capgo/capacitor-health": "8.13.0"
   },
-  "devDependencies": { "@capacitor/cli": "8.6.2" }
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2"
+  }
 }
