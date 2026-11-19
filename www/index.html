@@ -46,7 +46,7 @@ nav button.on{color:var(--txt)} nav button.on .ic{color:var(--acc)}
 .ic{font-size:20px;line-height:1}
 input,select{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 10px;font:inherit;width:100%}
 input:focus,select:focus{outline:none;border-color:var(--acc)}
-.btn{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:600 13px Inter;cursor:pointer;white-space:nowrap}
+.btn{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:600 13px Inter;cursor:pointer;white-space:normal;line-height:1.25}
 .btn.p{background:linear-gradient(135deg,#e2c062,#b8902a);border-color:#c9a227;color:#120f08}
 .btn.d{color:#ff8a8a}
 .btn.armed{background:#4a3c12;border-color:var(--acc);color:#fff}
@@ -173,6 +173,11 @@ body.discreet .amt,body.discreet .wi input:not(:focus){filter:blur(7px)}
 .nowbtn{position:fixed;right:16px;bottom:calc(86px + var(--sab));z-index:5;background:linear-gradient(135deg,#e2c062,#b8902a);color:#120f08;border:0;border-radius:999px;padding:13px 18px;font:800 14px Inter;box-shadow:0 8px 24px rgba(0,0,0,.55);cursor:pointer}
 .tour{text-align:center;padding-top:40px;max-width:420px;margin:0 auto}.tic{font-size:54px;margin-bottom:10px}
 .dots{display:flex;gap:6px;justify-content:center;margin-top:22px}.dots i{width:7px;height:7px;border-radius:50%;background:#3a321f}.dots i.on{background:var(--acc);width:20px;border-radius:9px}
+html,body{max-width:100%;overflow-x:hidden}
+input,select,textarea{min-width:0;max-width:100%}
+.row>*,.todo-add>*,.wi>*,.wg>*,.tl>*,.edit-a>*,.opts3>*,.phases>*,.tro>*{min-width:0}
+.lbl,.vt,.disp,.mut{overflow-wrap:anywhere}
+.todo-add input[type=date],.todo-add input[type=time]{width:100%}
 </style>
 </head>
 <body>
