@@ -171,6 +171,8 @@ body.discreet .amt,body.discreet .wi input:not(:focus){filter:blur(7px)}
 .trig{font-size:12px;color:var(--acc2);margin-top:2px}
 .nm{border-color:#a8701c;background:#1a140a}.nm2{color:#f0b46a;font-size:12.5px;margin-top:3px}
 .nowbtn{position:fixed;right:16px;bottom:calc(86px + var(--sab));z-index:5;background:linear-gradient(135deg,#e2c062,#b8902a);color:#120f08;border:0;border-radius:999px;padding:13px 18px;font:800 14px Inter;box-shadow:0 8px 24px rgba(0,0,0,.55);cursor:pointer}
+.tour{text-align:center;padding-top:40px;max-width:420px;margin:0 auto}.tic{font-size:54px;margin-bottom:10px}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:22px}.dots i{width:7px;height:7px;border-radius:50%;background:#3a321f}.dots i.on{background:var(--acc);width:20px;border-radius:9px}
 </style>
 </head>
 <body>
@@ -456,7 +458,7 @@ function obNext(){
   const st=STEPS[ob.i],inp=document.getElementById("obIn");if(inp)ob.a[st.id]=inp.value.trim();
   if(st.type==="presets")saveTargets();saveForm();
   if(!canNext()){if(st.type==="presets")toast("Choisis un objectif pour chaque domaine");return}
-  if(st.type==="recap"){applyOnboarding(ob.a);S.onboarded=true;ob=null;tab="today";persist();render();toast(mod("prog")?"Jour 1. Phase Fondation. Pas d'excuse.":"Ton espace est prêt.");return}
+  if(st.type==="recap"){applyOnboarding(ob.a);S.onboarded=true;ob=null;tab="today";const first=!S.tourDone;S.tourDone=true;persist();render();if(first){tourI=0;closeModal();openModal(vTour())}toast(mod("prog")?"Jour 1. Phase Fondation. Pas d'excuse.":"Ton espace est prêt.");return}
   obGo(1);
 }
 
@@ -480,6 +482,7 @@ async function init(){
   if(S.timer&&timerLeft()<=0){const T=S.timer;S.timer=null;markDone([T.aid],T.day)}
   render();scheduleSoon();checkUpdate(true);setupNotifActions();checkTrophies();autoBackup();syncWidget();loadCalendar(true);syncHealth(true);settleContract();setInterval(()=>{if(document.visibilityState==="visible")syncHealth(false)},5*60e3);
   if(S.timer)showTimer();
+  else if(S.onboarded&&!S.tourDone&&!locked){S.tourDone=true;persist();tourI=0;closeModal();openModal(vTour())}
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S&&!ob){if(S.timer&&timerLeft()<=0)finishTimer();render();scheduleSoon();checkUpdate(false);checkTrophies();autoBackup();syncWidget();loadCalendar(false);syncHealth(false);settleContract()}});
 
@@ -1157,6 +1160,24 @@ async function syncHealth(force){
   else if(tab==="today"&&!ob)render();
 }
 
+/* ---------- guide de démarrage ---------- */
+let tourI=0;
+function tourSlides(){
+  const P=mod("prog"),out=[];
+  if(P)out.push(["◉","Coche en un appui","Appuie sur une promesse pour la cocher. Les promesses <span class='core'>SOCLE</span> valident ta journée et font grandir ta série 🔥. Le reste, c'est du bonus d'XP."]);
+  if(P)out.push(["🕑","Ta journée se décale","Appuie sur l'heure d'une promesse pour la déplacer. L'appli te demande si c'est <b>exceptionnel</b>, pour <b>ta journée type</b> ou pour <b>ta routine</b>. Un socle reporté à demain compte comme raté."]);
+  if(P)out.push(["⚡","Maintenant","Le bouton doré en bas t'indique la seule chose à faire à cette heure-ci. Ton chemin le plus court quand la journée déborde."]);
+  if(mod("todo"))out.push(["✅","Ta to-do","Ajoute une tâche, avec ou sans date et heure. Une tâche avec une heure t'envoie un rappel."]);
+  out.push(["📲","Sans ouvrir l'appli","Les rappels ont un bouton <b>✓ Fait</b>. Ajoute aussi le widget : appui long sur ton écran d'accueil → Widgets → Ascension."]);
+  out.push(["⚙️","Tout se règle","Onglet Progression : modules, rappels, verrouillage par empreinte, sauvegarde, et le bouton <b>Donner mon avis</b>. Tu peux revoir ce guide à tout moment."]);
+  return out;
+}
+function vTour(){const T=tourSlides(),[ic,t,d]=T[tourI],last=tourI===T.length-1;
+  return`<div class="tour"><div class="tic">${ic}</div><div class="day">${tourI+1} / ${T.length}</div><h2 class="disp" style="font-size:26px;margin:8px 0 12px">${t}</h2><div class="mut" style="font-size:15.5px;line-height:1.5">${d}</div>
+  <div class="dots">${T.map((_,i)=>`<i class="${i===tourI?"on":""}"></i>`).join("")}</div>
+  <button class="btn p" style="width:100%;padding:14px;margin-top:22px" data-do="${last?"tourend":"tournext"}">${last?"C'est parti":"Suivant"}</button>
+  ${last?"":`<button class="btn" style="width:100%;margin-top:8px;background:none;border:0;color:var(--mut)" data-do="tourend">Passer</button>`}</div>`}
+
 /* ---------- logique ---------- */
 const entries=()=>Object.values(S.log).flatMap(d=>Object.values(d));
 const totalXP=()=>entries().reduce((a,e)=>a+e.x,0);
@@ -1352,7 +1373,7 @@ function vStats(){
   }
   if(mod("prog"))h+=`<div class="card"><div class="disp" style="font-size:16px">🤝 Contrat d'engagement</div>${vContract()}</div>`;
   h+=`<div class="card"><div class="disp" style="font-size:16px">Bêta</div><div class="mut sm" style="margin:6px 0 10px">Fais tester l'appli à quelques proches et récolte leurs avis.</div>
-    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn p" data-do="feedback">📝 Donner mon avis</button><a class="btn" style="text-decoration:none" href="https://wa.me/?text=${encodeURIComponent(SHARE_TXT)}" target="_blank">📲 Inviter un testeur</a></div></div>`;
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn p" data-do="feedback">📝 Donner mon avis</button><button class="btn" data-do="tour">🧭 Revoir le guide</button><a class="btn" style="text-decoration:none" href="https://wa.me/?text=${encodeURIComponent(SHARE_TXT)}" target="_blank">📲 Inviter un testeur</a></div></div>`;
   h+=`<div class="card"><div class="disp" style="font-size:16px">Modules</div><div class="mut sm" style="margin:6px 0 8px">Active ce qui t'intéresse. Un module masqué garde ses données.</div>
     ${MODS.map(([m,l,d])=>`<div class="modr"><div><b>${l}</b><div class="mut sm">${d}</div></div><button class="btn ${mod(m)?"p":""}" ${m==="prog"&&mod(m)?"data-confirm":"data-do"}="modt:${m}">${mod(m)?"Activé":"Activer"}</button></div>`).join("")}</div>`;
   const JK=Object.keys(S.journal||{}).filter(d=>{const J=S.journal[d];return J.w||J.f||J.c}).sort().reverse().slice(0,10);
@@ -1401,6 +1422,9 @@ function run(cmd){
   if(c==="ritualskip"){S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();return}
   if(c==="ritualopen"){openModal(vRitual());return}
   if(c==="nextcycle"){nextCycle();return}
+  if(c==="tour"){tourI=0;openModal(vTour());return}
+  if(c==="tournext"){tourI++;openModal(vTour());return}
+  if(c==="tourend"){closeModal();S.tourDone=true;persist();render();return}
   if(c==="now"){nowSkip=[];openModal(vNow());return}
   if(c==="nowskip"){nowSkip.push(id);openModal(vNow());return}
   if(c==="nowdone"){if(id.startsWith("td-")){const t=(S.todos||[]).find(x=>x.id===id.slice(3));if(t){t.done=true;t.doneAt=k;(S.log[k]=S.log[k]||{})["td:"+t.id]={x:5,g:null};persist()}}else markDone([id],k);toast("✓ Bien joué");openModal(vNow());render();openModal(vNow());return}
