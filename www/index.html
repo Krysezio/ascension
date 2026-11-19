@@ -154,6 +154,12 @@ nav button{max-width:130px}
 .tl input{width:92px;flex:none;padding:7px}
 .evr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.evr:first-child{border-top:0}
 .chk{display:flex;gap:12px;flex-wrap:wrap}.chk label{display:flex;gap:5px;align-items:center;font-size:13px}.chk input{width:auto;accent-color:#c9a227}
+nav button{max-width:110px;font-size:11px}
+.calr{opacity:.75}.calr .lbl{padding:10px 4px;color:#cfc6b0}
+.clash{font-size:12px;color:#f0b46a;padding:0 0 8px 60px;cursor:pointer}
+.dream{border:1px solid #3a321f;border-radius:16px;overflow:hidden;margin-bottom:12px;background:#0e0d0b}
+.dvis{position:relative;height:170px;background:radial-gradient(120% 90% at 85% 30%,#211b0f,#0b0a08)}
+.dvis .vart{height:165px;width:165px}
 </style>
 </head>
 <body>
@@ -161,6 +167,7 @@ nav button{max-width:130px}
 <nav id="nav">
   <button data-tab="today" class="on"><span class="ic">◉</span>Aujourd'hui</button>
   <button data-tab="goals"><span class="ic">◆</span>Objectifs</button>
+  <button data-tab="vision"><span class="ic">✦</span>Vision</button>
   <button data-tab="agenda"><span class="ic">◷</span>Agenda</button>
   <button data-tab="stats"><span class="ic">▦</span>Progression</button>
 </nav>
@@ -197,6 +204,7 @@ function migrate(s){
   if(!s.notif)s.notif={on:true,times:{matin:wakeToTime(s.profile&&s.profile.wake)||"06:30",midi:"12:30",aprem:"15:00",soir:"19:00"},bilan:"21:30",mesure:"10:00"};
   s.photos=s.photos||{};
   (s.goals||[]).forEach(g=>{if(!g.art)g.art=artFor(DOMAIN_ART[g.key]||"peak",s.profile&&s.profile.sex)});
+  s.dreams=s.dreams||[];s.cal=s.cal||{on:false};
   s.dayPlan=s.dayPlan||{};s.moves=s.moves||[];s.events=s.events||[];
   s.trophies=s.trophies||{};s.ritual=s.ritual||{};s.prio=s.prio||{};s.partner=s.partner||{};s.cycle=s.cycle||1;
   if(s.notif&&!s.notif.relance)s.notif.relance="20:00";s.journal=s.journal||{};s.reviews=s.reviews||{};
@@ -223,9 +231,10 @@ const ART_SVG={
  sunrise:[P("M14 150H186")+P("M46 150A54 54 0 0 1 154 150")+P("M100 76V54M60 92L46 78M140 92L154 78M36 124H16M164 124H184",2)+P("M40 168H160M64 182H136",1.3)],
  target:['<circle cx="96" cy="108" r="66" stroke-width="2"/><circle cx="96" cy="108" r="44" stroke-width="1.8"/><circle cx="96" cy="108" r="22" stroke-width="1.6"/><circle cx="96" cy="108" r="4" stroke-width="2"/>'+P("M96 108L172 32",2.4)+P("M160 30L174 30L174 44M172 32L186 22",2)],
  chain:[P("M22 96C10 108 10 128 22 140C34 152 54 152 66 140L80 126")+P("M88 110L100 96C112 84 112 64 100 52C88 40 68 40 56 52L42 66",2.2)+P("M112 144L100 156C88 168 88 188 100 196",2.2)+P("M120 92L134 78C146 66 166 66 178 78C190 90 190 110 178 122L164 136",2.2)+P("M100 104L108 92M112 112L124 108M96 116L92 128",1.6)],
+ car:[P("M12 146C20 132 52 122 90 116L126 98C140 92 164 98 188 122L192 140C192 146 188 150 182 150H168")+P("M136 150H68")+P("M36 150H22C14 150 10 148 12 146")+'<circle cx="52" cy="150" r="16" stroke-width="2.2"/><circle cx="152" cy="150" r="16" stroke-width="2.2"/><circle cx="52" cy="150" r="6" stroke-width="1.4"/><circle cx="152" cy="150" r="6" stroke-width="1.4"/>'+P("M98 116L128 103C140 99 154 104 164 116Z",1.6)+P("M60 132H86M170 128H184",1.2)+P("M18 178H186",1)],
  peak:[P("M100 30L178 174H146L100 88L54 174H22Z")+P("M100 122L126 174H74Z",1.8)]
 };
-const ART_NAMES={villa:"Villa",chart:"Finances",city:"Patrimoine",torso_h:"Abdos (homme)",torso_f:"Abdos (femme)",runner:"Course",mountain:"Sérénité",book:"Lecture",crown:"Confiance",family:"Famille",people:"Relations",home:"Foyer",sunrise:"Matin",target:"Concentration",chain:"Briser les chaînes",peak:"Ascension"};
+const ART_NAMES={car:"Voiture de sport",villa:"Villa",chart:"Finances",city:"Patrimoine",torso_h:"Abdos (homme)",torso_f:"Abdos (femme)",runner:"Course",mountain:"Sérénité",book:"Lecture",crown:"Confiance",family:"Famille",people:"Relations",home:"Foyer",sunrise:"Matin",target:"Concentration",chain:"Briser les chaînes",peak:"Ascension"};
 const PRESET_ART={rev:"villa",fin:"chart",pat:"city",lose:"torso",muscle:"torso",fit:"runner",calm:"mountain",learn:"book",conf:"crown",kids:"family",rel:"people",home:"home",morning:"sunrise",focus:"target",habit:"chain"};
 const DOMAIN_ART={money:"villa",body:"torso",mind:"mountain",family:"family",disc:"target"};
 const artFor=(k,sex)=>k==="torso"?(sex==="f"?"torso_f":"torso_h"):k;
@@ -419,10 +428,10 @@ async function init(){
   syncState=NATIVE?"Données enregistrées sur ce téléphone":"Aperçu navigateur — données locales";
   try{const v=await fetch("version.json",{cache:"no-store"}).then(r=>r.json());myBuild=+v.build||0}catch(e){}
   if(S.timer&&timerLeft()<=0){const T=S.timer;S.timer=null;markDone([T.aid],T.day)}
-  render();scheduleSoon();checkUpdate(true);setupNotifActions();checkTrophies();autoBackup();syncWidget();
+  render();scheduleSoon();checkUpdate(true);setupNotifActions();checkTrophies();autoBackup();syncWidget();loadCalendar(true);
   if(S.timer)showTimer();
 }
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S&&!ob){if(S.timer&&timerLeft()<=0)finishTimer();render();scheduleSoon();checkUpdate(false);checkTrophies();autoBackup();syncWidget()}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S&&!ob){if(S.timer&&timerLeft()<=0)finishTimer();render();scheduleSoon();checkUpdate(false);checkTrophies();autoBackup();syncWidget();loadCalendar(false)}});
 
 /* ---------- rappels programmés (notifications locales Android) ---------- */
 const NOTIF_DAYS=14;
@@ -600,6 +609,7 @@ function vReview(endDay){
   ${R.sugg.length?`<div class="card"><b>🔧 Ajustements proposés</b>${R.sugg.map(s=>`<div class="sg"><div class="mut sm">${esc(s.txt)}</div><button class="btn" data-do="adj:${s.a.id}:${s.kind}">${s.btn}</button></div>`).join("")}</div>`:`<div class="mut sm" style="text-align:center">Aucun ajustement nécessaire.</div>`}
   ${(()=>{const W=weekdayStats();return W.weak&&W.st.filter(y=>y.n).length>2?`<div class="mut sm" style="margin:8px 0">📅 Ton jour le plus fragile : le <b style="color:var(--txt)">${WDL[W.weak.i]}</b> (${W.weak.ok}/${W.weak.n} tenus).</div>`:""})()}
   ${S.partner&&S.partner.name?partnerLinks(endDay):`<div class="mut sm" style="margin-top:10px">💬 Ajoute un partenaire de suivi dans Progression → Réglages pour lui envoyer ce bilan en un appui.</div>`}
+  <a class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${coachLink("week")}">🤖 Analyse approfondie par Claude</a>
   <button class="btn p" style="width:100%;padding:13px;margin-top:10px" data-do="reviewseen:${endDay}">C'est noté</button>`;
 }
 function reviewDue(){
@@ -742,7 +752,8 @@ function moveSheet(aid,k){
    <label class="sc"><input type="radio" name="mvS" value="wd"><span><b>Ma journée type du ${WDL[w]}</b><em>Tous les ${WDL[w]}s</em></span></label>
    <label class="sc"><input type="radio" name="mvS" value="all"><span><b>Ma routine</b><em>Tous les jours où elle est prévue</em></span></label></div>
   <button class="btn p" style="width:100%;padding:13px" data-do="mvok:${aid}">Valider</button>
-  ${k===today()?`<button class="btn" style="width:100%;margin-top:8px" data-do="mvpost:${aid}">⏭ Reporter à demain (exceptionnel)</button>`:""}`);
+  ${k===today()?`<button class="btn" style="width:100%;margin-top:8px" ${a.core?"data-confirm":"data-do"}="mvpost:${aid}">⏭ Reporter à demain (exceptionnel)</button>${a.core?`<div class="mut sm" style="margin-top:6px;text-align:center">⚠️ C'est un socle : le reporter compte comme une journée ratée aujourd'hui.</div>`:""}`:""}
+  ${(()=>{const c=clashOf(a,k);return c?`<button class="btn" style="width:100%;margin-top:8px" data-do="mvafter:${aid}:${hm(c.e).replace(":","")}">Après « ${esc(c.title)} » (${hm(c.e)})</button>`:""})()}`);
 }
 function applyMove(aid,k,scope,time){
   const a=S.actions.find(x=>x.id===aid);if(!a)return;const from=sortTime(a,k),w=parse(k).getDay();
@@ -755,7 +766,7 @@ function applyMove(aid,k,scope,time){
 }
 function postpone(aid,k){
   const a=S.actions.find(x=>x.id===aid);if(!a)return;S.dayPlan=S.dayPlan||{};S.moves=S.moves||[];
-  const t=addDays(k,1);(S.dayPlan[k]=S.dayPlan[k]||{})[aid]={skip:true};
+  const t=addDays(k,1);(S.dayPlan[k]=S.dayPlan[k]||{})[aid]={skip:true};if(a.core)setTimeout(()=>toast("Socle reporté : la journée compte comme ratée"),900);
   (S.dayPlan[t]=S.dayPlan[t]||{})[aid]={add:true,time:sortTime(a,k)};
   S.moves.push({d:k,aid,kind:"postpone",from:sortTime(a,k),to:t});toast("Reporté à demain");
 }
@@ -797,9 +808,82 @@ function vEvents(){
 let evType="anniv";
 function vAgenda(){
   return`<div class="top"><div><div class="day">Organisation</div><h1 class="big">Agenda</h1></div></div>
+  <div class="card"><div class="disp" style="font-size:16px">Agenda du téléphone</div>
+   ${S.cal&&S.cal.on&&calState!=="denied"?`<div class="mut sm" style="margin:6px 0">✓ Connecté. Tes rendez-vous (Google Agenda compris) s'affichent dans ta journée et les promesses qui tombent pendant un rendez-vous sont signalées.</div><div class="row" style="gap:8px"><button class="btn" data-do="calrefresh">Actualiser</button><button class="btn" data-do="caloff">Déconnecter</button></div>`
+   :`<div class="mut sm" style="margin:6px 0 10px">Affiche tes rendez-vous dans ta journée et repère les conflits. Lecture seule : Ascension ne modifie jamais ton agenda.</div><button class="btn p" data-do="calon">Connecter mon agenda</button>`}</div>
   <div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Mes journées types</div>${vTypes()}</div>
   <div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Dates importantes</div>${vEvents()}</div>`;
 }
+
+/* ---------- agenda du téléphone (Google Agenda synchronisé) ---------- */
+let calCache={},calAt=0,calState="?";
+const hm=ms=>{const d=new Date(ms);return z(d.getHours())+":"+z(d.getMinutes())};
+async function loadCalendar(force){
+  if(!Tools||!S||!S.cal||!S.cal.on)return;if(!force&&Date.now()-calAt<10*60e3)return;calAt=Date.now();
+  try{const st=await Tools.calendarState();calState=st.state;if(st.state!=="granted")return;
+    const s0=parse(today()).getTime(),r=await Tools.calendarEvents({start:s0,end:s0+14*864e5});calCache={};
+    (r.events||[]).forEach(e=>{if(e.allDay){const k=key(new Date(e.begin+12*3600e3));(calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",allDay:true});return}
+      for(let d=new Date(e.begin);d.getTime()<e.end;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const k=key(d),dayEnd=parse(k).getTime()+864e5;
+        (calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",b:Math.max(e.begin,parse(k).getTime()),e:Math.min(e.end,dayEnd),loc:e.location||""})}});
+    if(!ob&&(tab==="today"||tab==="agenda"))render()}catch(e){}
+}
+const calOf=k=>(calCache[k]||[]);
+function clashOf(a,k){const t=sortTime(a,k),ms=atTime(k,t).getTime();return calOf(k).find(e=>!e.allDay&&e.b<=ms&&ms<e.e)||null}
+async function connectCalendar(){
+  if(!Tools){toast("Disponible dans l'appli Android");return}
+  try{const r=await Tools.requestCalendar();calState=r.state;if(r.state==="granted"){S.cal={on:true};persist();await loadCalendar(true);toast("Agenda connecté")}else toast("Accès refusé : Paramètres Android → Applis → Ascension → Autorisations → Agenda")}catch(e){toast(String(e&&e.message||e))}
+  render();
+}
+
+/* ---------- espace Vision : les rêves à financer ---------- */
+const eur=n=>Math.round(n).toLocaleString("fr-FR")+" €";
+function monthsLeft(d){if(!d)return null;const a=new Date(),b=parse(d.length===7?d+"-01":d);return Math.max(1,(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth())}
+function dreamNeed(dr){const rest=Math.max(0,(+dr.price||0)-(+dr.saved||0)),m=monthsLeft(dr.date);return{rest,m,perMonth:m?rest/m:null,pct:dr.price?Math.min(100,(+dr.saved||0)/dr.price*100):0}}
+function dreamVisual(dr){const ph=S.photos&&S.photos["d:"+dr.id];return ph?`<div class="vbg" style="background-image:url('${ph}')"></div>`:artSvg(dr.art||"villa","vart")}
+let dreamEdit=null;
+function vVision(){
+  const D=S.dreams||[],tot=D.reduce((s,d)=>s+(+d.price||0),0),sav=D.reduce((s,d)=>s+(+d.saved||0),0),pm=D.reduce((s,d)=>s+(dreamNeed(d).perMonth||0),0);
+  let h=`<div class="top"><div><div class="day">Ce pour quoi tu te lèves</div><h1 class="big">Vision</h1></div></div>`;
+  if(D.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><div><div class="mut sm">Total de tes rêves</div><div class="disp" style="font-size:24px">${eur(tot)}</div></div><div style="text-align:right"><div class="mut sm">Déjà réuni</div><div class="disp" style="font-size:18px;color:var(--acc2)">${eur(sav)}</div></div></div>
+    <div class="bar"><i style="width:${tot?Math.min(100,sav/tot*100):0}%"></i></div>
+    ${pm?`<div class="mut sm" style="margin-top:8px">Pour tout financer à temps : <b style="color:var(--txt)">${eur(pm)} par mois</b> à mettre de côté.</div>`:""}
+    <a class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${coachLink("vision")}">🤖 Construire mon plan de financement avec Claude</a></div>`;
+  D.forEach(dr=>{const n=dreamNeed(dr);
+    h+=`<div class="dream"><div class="dvis">${dreamVisual(dr)}<div class="vov"></div><div class="vtx" style="right:30%"><div class="vk">${dr.date?"Objectif "+parse(dr.date.length===7?dr.date+"-01":dr.date).toLocaleDateString("fr-FR",{month:"long",year:"numeric"}):"Sans date"}</div><div class="vt" style="font-size:20px">${esc(dr.name)}</div><div class="mut sm">${eur(+dr.price||0)}</div></div></div>
+    <div style="padding:12px 14px"><div class="row" style="justify-content:space-between"><span class="mut sm">${eur(+dr.saved||0)} réunis · ${Math.round(n.pct)} %</span><span class="mut sm">${n.perMonth!==null?eur(n.perMonth)+"/mois":""}</span></div>
+    <div class="bar"><i style="width:${n.pct}%"></i></div>
+    ${dr.why?`<div class="why" style="margin:10px 0 0">« ${esc(dr.why)} »</div>`:""}
+    <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input inputmode="decimal" data-dsave="${dr.id}" placeholder="+ montant mis de côté" style="flex:1;min-width:140px"><button class="btn p" data-do="dsave:${dr.id}">Ajouter</button>
+    <button class="btn" data-do="dedit:${dr.id}">Modifier</button></div></div></div>`});
+  const e=dreamEdit?(D.find(x=>x.id===dreamEdit)||{}):{};
+  h+=`<div class="card"><b>${dreamEdit?"Modifier : "+esc(e.name):"+ Ajouter un rêve"}</b>
+    <label class="f">Quoi ?</label><input id="drN" value="${esc(e.name||"")}" placeholder="Ex. Une villa pour maman, une Lamborghini Aventador">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="f">Prix</label><input id="drP" inputmode="decimal" value="${e.price||""}" placeholder="450 000"></div><div><label class="f">Pour quand ?</label><input id="drD" type="month" value="${esc(e.date||"")}"></div></div>
+    <label class="f">Déjà mis de côté</label><input id="drS" inputmode="decimal" value="${e.saved||""}" placeholder="0">
+    <label class="f">Pourquoi c'est important</label><input id="drW" value="${esc(e.why||"")}" placeholder="Ex. Lui rendre tout ce qu'elle m'a donné">
+    <label class="f">Illustration</label><select id="drA">${Object.entries(ART_NAMES).map(([k,n])=>`<option value="${k}" ${(e.art||"villa")===k?"selected":""}>${n}</option>`).join("")}</select>
+    <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn p" data-do="dok">${dreamEdit?"Enregistrer":"Ajouter"}</button>
+    ${dreamEdit?`<label class="btn" style="cursor:pointer">📷 Ma photo<input type="file" accept="image/*" data-dphoto="${dreamEdit}" hidden></label><button class="btn" data-do="dcancel">Annuler</button><button class="btn d" data-confirm="ddel:${dreamEdit}">Supprimer</button>`:`<span class="mut sm">Ajoute ta photo après l'enregistrement.</span>`}</div></div>`;
+  return h;
+}
+
+/* ---------- coach IA : ouvre Claude avec tout le contexte ---------- */
+function coachPrompt(kind){
+  const k=today(),R=weekReview(k),nm=S.profile&&S.profile.name||"moi",W=weekdayStats();
+  let t=`Tu es mon coach de performance personnelle, exigeant et concret. Je suis ${nm}. Je suis un programme de ${S.length} jours dans l'appli Ascension (jour ${dayNum()}, phase ${PHASES[phaseOf(k)]}, série actuelle ${streak()} jours).\n`;
+  if(S.profile&&S.profile.why)t+=`Mon pourquoi : ${S.profile.why}\n`;
+  t+=`\nMES OBJECTIFS\n`+S.goals.map(g=>`- ${g.name} : ${g.target||""}`).join("\n");
+  t+=`\n\nMES PROMESSES (tenues sur 7 jours)\n`+S.actions.map(a=>{let du=0,dn=0;R.days.forEach(d=>{if(dueOn(a,d)){du++;if((S.log[d]||{})[a.id])dn++}});return`- ${a.core?"[SOCLE] ":""}${a.label} (${detailOf(a,k)||"—"}) : ${dn}/${du}`}).join("\n");
+  t+=`\n\nBilan 7 jours : ${R.held}/${R.days.length} jours tenus.`;if(W.weak)t+=` Jour le plus faible : ${WDL[W.weak.i]}.`;
+  if(R.mv.length)t+=` ${R.mv.length} décalages ou reports cette semaine.`;
+  const ms=S.goals.filter(g=>g.metric&&g.metric.n&&(S.measures[g.id]||[]).length);if(ms.length)t+=`\nMesures : `+ms.map(g=>{const m=S.measures[g.id];return`${g.metric.n} ${fnum(m[0].v)} → ${fnum(m[m.length-1].v)} ${g.metric.u||""}`}).join(" ; ");
+  const D=S.dreams||[];if(D.length)t+=`\n\nMES RÊVES\n`+D.map(d=>{const n=dreamNeed(d);return`- ${d.name} : ${eur(+d.price||0)}, ${eur(+d.saved||0)} réunis${d.date?", pour "+d.date:""}${n.perMonth?` (${eur(n.perMonth)}/mois nécessaires)`:""}`}).join("\n");
+  const J=Object.keys(S.journal||{}).sort().slice(-3).map(d=>{const x=S.journal[d];return`${d} : gagné « ${x.w||""} », raté « ${x.f||""} », à corriger « ${x.c||""} »`});if(J.length)t+=`\n\nMON JOURNAL RÉCENT\n`+J.join("\n");
+  t+=kind==="vision"?`\n\nConstruis-moi un plan de financement réaliste et ambitieux pour ces rêves : revenus à atteindre, épargne mensuelle, leviers concrets (activité, investissements), jalons à 3, 6 et 12 mois, et ce que je dois ajouter dès demain dans mes promesses quotidiennes.`
+    :`\n\nAnalyse ma semaine sans complaisance : 3 constats, 3 ajustements concrets à faire dans mes promesses (quoi, quand, combien), et la seule chose à ne pas lâcher la semaine prochaine.`;
+  return t.slice(0,6000);
+}
+const coachLink=kind=>"claude://claude.ai/new?q="+encodeURIComponent(coachPrompt(kind));
 
 /* ---------- logique ---------- */
 const entries=()=>Object.values(S.log).flatMap(d=>Object.values(d));
@@ -816,6 +900,7 @@ function ratio(k){const d=due(k),L=S.log[k]||{};return d.length?d.filter(a=>L[a.
 function valid(k){
   const d=due(k),L=S.log[k]||{};
   if(S.jokers[k])return Object.keys(L).length>0;
+  {const P=planOf(k);if(Object.keys(P).some(id=>P[id].skip&&(S.actions.find(a=>a.id===id)||{}).core))return false}
   if(!d.length)return false;
   const c=d.filter(a=>a.core);
   return c.length?c.every(a=>L[a.id]):d.every(a=>L[a.id]);
@@ -848,7 +933,7 @@ function render(){
   const p=phaseOf(today());
   if(p>(S.lastPhase||0)&&today()>=S.startDate){S.lastPhase=p;persist();setTimeout(()=>toast(`Phase ${p+1} : ${PHASES[p]}. Les charges montent.`),300)}
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
-  el0.innerHTML=tab==="today"?vToday():tab==="goals"?vGoals():tab==="agenda"?vAgenda():vStats();
+  el0.innerHTML=tab==="today"?vToday():tab==="goals"?vGoals():tab==="agenda"?vAgenda():tab==="vision"?vVision():vStats();
   if(ritualDue()&&!document.getElementById("modal").classList.contains("on"))openModal(vRitual());
   el0.insertAdjacentHTML("beforeend",`<div class="sync" id="sync">${myBuild?"Version 1.0."+myBuild+" · ":""}${esc(syncState)}</div>`);
 }
@@ -883,7 +968,7 @@ function vToday(){
   ${over?vFinish():""}
   ${(S.prio||{})[k]?`<div class="card prio" data-do="ritualopen"><span class="mut sm">🎯 PRIORITÉ N°1</span><div class="disp" style="font-size:17px;margin-top:2px">${esc(S.prio[k])}</div></div>`:""}
   ${S.profile&&S.profile.why?`<div class="why">« ${esc(S.profile.why)} »</div>`:""}
-  ${S.goals.length?`<div class="vis">${S.goals.map(g=>`<div class="vcard" data-tabgo="goals">${goalVisual(g)}<div class="vov"></div><div class="vtx"><div class="vk">${esc(g.emoji)} ${esc(g.name)} · Niv. ${lvl(goalXP(g.id))}</div><div class="vt">${esc(g.target||"")}</div></div></div>`).join("")}</div>`:""}
+  ${S.goals.length||(S.dreams||[]).length?`<div class="vis">${(S.dreams||[]).map(d=>`<div class="vcard" data-tabgo="vision">${dreamVisual(d)}<div class="vov"></div><div class="vtx"><div class="vk">✦ Rêve · ${Math.round(dreamNeed(d).pct)} %</div><div class="vt">${esc(d.name)}</div></div></div>`).join("")}${S.goals.map(g=>`<div class="vcard" data-tabgo="goals">${goalVisual(g)}<div class="vov"></div><div class="vtx"><div class="vk">${esc(g.emoji)} ${esc(g.name)} · Niv. ${lvl(goalXP(g.id))}</div><div class="vt">${esc(g.target||"")}</div></div></div>`).join("")}</div>`:""}
   ${(()=>{const rv=reviewDue();return rv?`<div class="card banner" data-do="review:${rv}"><b>📊 Bilan de la semaine</b><div class="mut sm">${weekReview(rv).held}/7 jours tenus — appuie pour voir et ajuster</div></div>`:""})()}
   ${(()=>{const u=upcoming(14);return u.length?`<div class="card banner" data-tabgo="agenda"><b>📅 À venir</b>${u.slice(0,3).map(x=>{const dd=diff(today(),x.o);return`<div class="mut sm">${(EVT[x.ev.type]||EVT.rdv).e} ${esc(x.ev.name)} · ${dd===0?"aujourd'hui":dd===1?"demain":"dans "+dd+" jours ("+parse(x.o).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})+")"}</div>`}).join("")}</div>`:""})()}
   ${md.length&&!before?`<div class="card banner" data-tabgo="stats"><b>📏 Mesure de la semaine</b><div class="mut sm">${md.map(x=>esc(x.metric.n)).join(" · ")} — appuie pour saisir</div></div>`:""}
@@ -892,10 +977,11 @@ function vToday(){
   h+=`<div class="seg"><button class="${S.view==="slot"?"on":""}" data-view="slot">Ma journée</button><button class="${S.view==="goal"?"on":""}" data-view="goal">Par objectif</button></div>`;
   if(!D.length)h+=`<div class="card empty mut">Rien de prévu aujourd'hui. Jour de repos.</div>`;
   else if(S.view==="slot"){
-    const items=D.map(a=>({t:sortTime(a,k),a})).concat(evTasks(k).map(e=>({t:e.time,e}))).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:((y.a&&y.a.core)-(x.a&&x.a.core)));
-    ["matin","midi","aprem","soir"].forEach(pp=>{const list=items.filter(x=>period(x.t)===pp);if(!list.length)return;
-      const dn=list.filter(x=>x.a?L[x.a.id]:L[x.e.key]).length;
-      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.length}</div></div>${list.map(x=>x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>`
+    const items=D.map(a=>({t:sortTime(a,k),a})).concat(evTasks(k).map(e=>({t:e.time,e}))).concat(calOf(k).filter(c=>!c.allDay).map(c=>({t:hm(c.b),c}))).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:((y.a&&y.a.core)-(x.a&&x.a.core)));
+    {const ad=calOf(k).filter(c=>c.allDay);if(ad.length)h+=`<div class="mut sm" style="margin:-4px 0 10px">📅 Aujourd'hui : ${ad.map(c=>esc(c.title)).join(" · ")}</div>`}
+    ["matin","midi","aprem","soir"].forEach(pp=>{const list=items.filter(x=>period(x.t)===pp);if(!list.filter(x=>!x.c).length&&!list.length)return;
+      const dn=list.filter(x=>x.a?L[x.a.id]:x.e?L[x.e.key]:false).length;list.cnt=list.filter(x=>!x.c).length;
+      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.cnt}</div></div>${list.map(x=>x.c?`<div class="tlr calr"><span class="tt ev">${x.t}</span><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · ton agenda</div></div></div>`:x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>${(()=>{const c=!L[x.a.id]&&clashOf(x.a,k);return c?`<div class="clash" data-move="${x.a.id}">⚠️ Pendant « ${esc(c.title)} » — appuie pour décaler</div>`:""})()}`
         :`<div class="tlr"><span class="tt ev">${x.t}</span><div class="act ${L[x.e.key]?"done":""}" data-evt="${x.e.key}"><div class="ck"></div><div class="lbl">${x.e.e} ${esc(x.e.label)}<div class="det">Date importante</div></div><div class="xp">+10</div></div></div>`).join("")}</div>`});
     h+=`<div class="mut sm" style="text-align:center;margin:-4px 0 12px">Appuie sur une heure pour décaler une promesse · * = changé pour aujourd'hui</div>`;
   }else{
@@ -1016,6 +1102,17 @@ function run(cmd){
   if(c==="ritualskip"){S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();return}
   if(c==="ritualopen"){openModal(vRitual());return}
   if(c==="nextcycle"){nextCycle();return}
+  if(c==="calon"){connectCalendar();return}
+  if(c==="caloff"){S.cal={on:false};calCache={};persist();render();return}
+  if(c==="calrefresh"){loadCalendar(true).then(()=>toast("Agenda actualisé"));return}
+  if(c==="mvafter"){applyMove(id,k,"today",x3.slice(0,2)+":"+x3.slice(2));closeModal();persist();render();return}
+  if(c==="dok"){const n=(document.getElementById("drN").value||"").trim();if(!n){toast("Indique ton rêve");return}
+    const o={name:n,price:num(document.getElementById("drP").value)||0,date:document.getElementById("drD").value||"",saved:num(document.getElementById("drS").value)||0,why:(document.getElementById("drW").value||"").trim(),art:document.getElementById("drA").value};
+    S.dreams=S.dreams||[];if(dreamEdit){Object.assign(S.dreams.find(x=>x.id===dreamEdit)||{},o)}else{const d={id:uid(),...o};if(o.art==="villa"&&/aventador|lambo|ferrari|porsche|mclaren|bugatti|voiture|v[ée]hicule|\bauto\b|car\b/i.test(o.name))d.art="car";S.dreams.push(d);dreamEdit=d.id;toast("Rêve ajouté. Ajoute ta photo !")}persist();render();return}
+  if(c==="dedit"){dreamEdit=id;render();setTimeout(()=>{const x=document.getElementById("drN");x&&x.scrollIntoView({behavior:"smooth",block:"center"})},50);return}
+  if(c==="dcancel"){dreamEdit=null;render();return}
+  if(c==="ddel"){S.dreams=(S.dreams||[]).filter(d=>d.id!==id);delete S.photos["d:"+id];dreamEdit=null;persist();render();return}
+  if(c==="dsave"){const i=document.querySelector(`[data-dsave="${id}"]`),v=i&&num(i.value),d=(S.dreams||[]).find(x=>x.id===id);if(v===null||!d){toast("Saisis un montant");return}d.saved=(+d.saved||0)+v;(d.hist=d.hist||[]).push({d:k,v});persist();render();toast(`+${eur(v)} pour ${d.name}`);return}
   if(c==="mvadd"){const i=document.getElementById("mvT");if(i)i.value=addMin(i.value,+id);return}
   if(c==="mvok"){const t=document.getElementById("mvT").value,sc=(document.querySelector('input[name="mvS"]:checked')||{}).value||"today";if(t){applyMove(id,k,sc,t)}closeModal();persist();render();return}
   if(c==="mvpost"){postpone(id,k);closeModal();persist();render();return}
@@ -1090,6 +1187,7 @@ document.addEventListener("change",e=>{
   if(t.dataset.gart){const g=S.goals.find(x=>x.id===t.dataset.gart);if(g){g.art=t.value;if(S.photos[g.id])toast("Ta photo reste prioritaire : retire-la pour voir l'illustration");persist();render()}}
   if(t.dataset.photo&&t.files&&t.files[0]){const gid=t.dataset.photo;readPhoto(t.files[0],u=>{S.photos[gid]=u;persist();render();toast("Photo ajoutée")})}
   if(t.dataset.wt){const a=S.actions.find(x=>x.id===t.dataset.wt);if(a&&t.value){a.wt=a.wt||{};a.wt[typeDay]=t.value;S.moves=S.moves||[];S.moves.push({d:today(),aid:a.id,kind:"wd",from:"",to:t.value});persist();render()}}
+  if(t.dataset.dphoto&&t.files&&t.files[0]){const id=t.dataset.dphoto;readPhoto(t.files[0],u=>{S.photos["d:"+id]=u;persist();render();toast("Photo ajoutée")})}
   if(t.dataset.pt){S.partner=S.partner||{};S.partner[t.dataset.pt]=t.value.trim();persist()}
   if(t.dataset.jr){S.journal=S.journal||{};const J=S.journal[t.dataset.jd]||(S.journal[t.dataset.jd]={});J[t.dataset.jr]=t.value.trim();persist();checkTrophies()}
   if(t.dataset.restore&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const n=JSON.parse(r.result);if(!n||!Array.isArray(n.actions)||!Array.isArray(n.goals))throw 0;pendingRestore=n;render()}catch(e){toast("Fichier invalide : choisis un fichier ascension-sauvegarde")}};r.readAsText(t.files[0])}
