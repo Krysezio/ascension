@@ -166,6 +166,8 @@ body.discreet .amt,body.discreet .wi input:not(:focus){filter:blur(7px)}
 .wi{display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}.wi:first-of-type{border-top:0}
 .wi input{padding:7px;text-align:right}
 .lock{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.lock svg{width:86px;height:86px}
+.todo-add{display:grid;grid-template-columns:1fr 1fr 48px;gap:6px;margin-top:10px}.todo-add #tdT{grid-column:1/-1}.todo-add input{padding:8px;font-size:13px}
+.modr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.modr:first-of-type{border-top:0}
 </style>
 </head>
 <body>
@@ -210,6 +212,7 @@ function migrate(s){
   if(!s.notif)s.notif={on:true,times:{matin:wakeToTime(s.profile&&s.profile.wake)||"06:30",midi:"12:30",aprem:"15:00",soir:"19:00"},bilan:"21:30",mesure:"10:00"};
   s.photos=s.photos||{};
   (s.goals||[]).forEach(g=>{if(!g.art)g.art=artFor(DOMAIN_ART[g.key]||"peak",s.profile&&s.profile.sex)});
+  s.modules=s.modules||{prog:true,body:true,wealth:true,dreams:true,todo:true,dates:true};s.todos=s.todos||[];
   s.wealth=s.wealth||{items:[],hist:[]};s.lock=s.lock||{mode:"off"};
   s.dreams=s.dreams||[];s.cal=s.cal||{on:false};
   s.dayPlan=s.dayPlan||{};s.moves=s.moves||[];s.events=s.events||[];
@@ -339,20 +342,30 @@ const DOMAINS={
    ["Action de remplacement","10 pompes ou 5 min de marche à chaque envie",10]]}}}
 };
 const OBST={disp:"Choisir LA priorité du jour avant 8 h",motiv:"Relire mon pourquoi le matin",screen:"Pas de réseaux sociaux avant midi",tired:"Au lit avant 23 h",time:"Bloquer le créneau du lendemain dans l'agenda"};
+const MODS=[["prog","🎯 Programme 90 jours","Objectifs, promesses quotidiennes, phases, grades"],["body","🔥 Physique","Poids, taille, objectif, pesées"],["wealth","💰 Patrimoine","Cash, biens, dettes, patrimoine net"],["dreams","✦ Rêves à financer","Villa, voiture, voyage… et combien mettre de côté"],["todo","✅ To-do list","Tes tâches, avec ou sans date"],["dates","📅 Dates importantes","Anniversaires, fêtes, rendez-vous, avec rappels cadeau"]];
+const mod=m=>!S||!S.modules||S.modules[m]!==false;
+const hasM=(A,m)=>(A.modules||[]).includes(m);
 const STEPS=[
   {id:"name",q:"On commence. Comment tu t'appelles ?",type:"text",ph:"Ton prénom"},
   {id:"sex",q:"Tu es…",sub:"Pour adapter les visuels et les programmes physiques.",type:"single",opts:[["h","Un homme"],["f","Une femme"]]},
-  {id:"domains",q:"Quels domaines veux-tu transformer en 90 jours ?",sub:"Choisis ceux qui comptent vraiment.",type:"multi",min:1,max:5,opts:Object.entries(DOMAINS).map(([k,d])=>[k,d.emoji+" "+d.name])},
-  {id:"presets",q:"Quel est ton objectif dans chaque domaine ?",sub:"Choisis-en un par domaine, puis précise ton chiffre si tu veux.",type:"presets"},
-  {id:"level",q:"Où en es-tu aujourd'hui ?",sub:"Ça règle les répétitions et durées de départ. Elles montent ensuite à chaque phase.",type:"single",opts:[["low","Je pars de zéro","On commence léger pour tenir"],["mid","J'ai des bases mais je suis irrégulier","Rythme standard"],["high","Je suis déjà discipliné","On monte l'intensité"]]},
-  {id:"time",q:"Combien de temps peux-tu y consacrer chaque jour ?",sub:"Ça règle le nombre de promesses.",type:"single",opts:[["30","30 min"],["60","1 h"],["120","2 h"],["180","3 h et plus"]]},
-  {id:"wake",q:"À quelle heure veux-tu te lever ?",type:"single",opts:[["5 h 30","5 h 30"],["6 h","6 h"],["6 h 30","6 h 30"],["7 h","7 h"],["none","Pas d'objectif de réveil"]]},
-  {id:"obst",q:"Qu'est-ce qui t'a fait lâcher les fois précédentes ?",sub:"Sois honnête, le programme s'adapte.",type:"multi",min:0,max:5,opts:[["disp","Je me disperse"],["motiv","La motivation retombe"],["screen","Les écrans"],["tired","La fatigue"],["time","Le manque de temps"]]},
-  {id:"why",q:"Pourquoi c'est vital pour toi ?",sub:"Ta raison profonde. Elle s'affichera chaque matin.",type:"area",ph:"Ex. Montrer à mes enfants qu'on peut se relever…"},
-  {id:"start",q:"Quand lances-tu tes 90 jours ?",type:"single",opts:[["today","Aujourd'hui"],["monday","Lundi prochain"]]},
+  {id:"modules",q:"Que veux-tu piloter avec Ascension ?",sub:"Coche uniquement ce qui t'intéresse. Le reste pourra être activé plus tard dans les réglages.",type:"multi",min:1,max:6,opts:MODS},
+  {id:"domains",when:A=>hasM(A,"prog"),q:"Quels domaines veux-tu transformer en 90 jours ?",sub:"Choisis ceux qui comptent vraiment.",type:"multi",min:1,max:5,opts:Object.entries(DOMAINS).map(([k,d])=>[k,d.emoji+" "+d.name])},
+  {id:"presets",when:A=>hasM(A,"prog"),q:"Quel est ton objectif dans chaque domaine ?",sub:"Choisis-en un par domaine, puis précise ton chiffre si tu veux.",type:"presets"},
+  {id:"level",when:A=>hasM(A,"prog"),q:"Où en es-tu aujourd'hui ?",sub:"Ça règle les répétitions et durées de départ. Elles montent ensuite à chaque phase.",type:"single",opts:[["low","Je pars de zéro","On commence léger pour tenir"],["mid","J'ai des bases mais je suis irrégulier","Rythme standard"],["high","Je suis déjà discipliné","On monte l'intensité"]]},
+  {id:"time",when:A=>hasM(A,"prog"),q:"Combien de temps peux-tu y consacrer chaque jour ?",sub:"Ça règle le nombre de promesses.",type:"single",opts:[["30","30 min"],["60","1 h"],["120","2 h"],["180","3 h et plus"]]},
+  {id:"wake",when:A=>hasM(A,"prog"),q:"À quelle heure veux-tu te lever ?",type:"single",opts:[["5 h 30","5 h 30"],["6 h","6 h"],["6 h 30","6 h 30"],["7 h","7 h"],["none","Pas d'objectif de réveil"]]},
+  {id:"obst",when:A=>hasM(A,"prog"),q:"Qu'est-ce qui t'a fait lâcher les fois précédentes ?",sub:"Sois honnête, le programme s'adapte.",type:"multi",min:0,max:5,opts:[["disp","Je me disperse"],["motiv","La motivation retombe"],["screen","Les écrans"],["tired","La fatigue"],["time","Le manque de temps"]]},
+  {id:"body",when:A=>hasM(A,"body"),q:"Ton point de départ physique",sub:"Tout est facultatif. Tu pourras compléter plus tard.",type:"form",fields:[["age","Âge","number","Ex. 38"],["height","Taille (cm)","number","Ex. 180"],["weight","Poids actuel (kg)","decimal","Ex. 92"],["target","Poids visé (kg)","decimal","Ex. 84"],["goal","Objectif","select",[["","—"],["lose","Perdre du poids"],["muscle","Prendre du muscle"],["fit","Retrouver la forme"],["keep","Garder la forme"]]]]},
+  {id:"wealth",when:A=>hasM(A,"wealth"),q:"Ton patrimoine en grandes lignes",sub:"Ordres de grandeur, facultatifs. Le détail pourra être affiné ensuite.",type:"form",fields:[["cash","Trésorerie (comptes, livrets) €","decimal",""],["placement","Placements (assurance-vie, PEA…) €","decimal",""],["immo","Immobilier (valeur réaliste) €","decimal",""],["societe","Parts de sociétés (valeur prudente) €","decimal",""],["debts","Total des crédits et dettes €","decimal",""]]},
+  {id:"dream",when:A=>hasM(A,"dreams"),q:"Ton premier rêve",sub:"Facultatif. Tu pourras en ajouter d'autres avec une photo.",type:"form",fields:[["name","Quoi ?","text","Ex. Une villa pour maman"],["price","Prix €","decimal","Ex. 450000"],["date","Pour quand ?","month",""]]},
+  {id:"datesf",when:A=>hasM(A,"dates"),q:"Tes anniversaires à ne pas rater",sub:"Facultatif. Les rappels cadeau arriveront au bon moment.",type:"form",fields:[["n1","Prénom","text",""],["d1","Date","date",""],["n2","Prénom","text",""],["d2","Date","date",""],["n3","Prénom","text",""],["d3","Date","date",""]]},
+  {id:"why",when:A=>hasM(A,"prog"),q:"Pourquoi c'est vital pour toi ?",sub:"Ta raison profonde. Elle s'affichera chaque matin.",type:"area",ph:"Ex. Montrer à mes enfants qu'on peut se relever…"},
+  {id:"start",when:A=>hasM(A,"prog"),q:"Quand lances-tu tes 90 jours ?",type:"single",opts:[["today","Aujourd'hui"],["monday","Lundi prochain"]]},
   {id:"recap",type:"recap"}
 ];
 let ob=null;
+const stepOn=i=>{const s=STEPS[i];return s&&(!s.when||s.when(ob.a))};
+function obGo(dir){let j=ob.i+dir;while(j>0&&j<STEPS.length-1&&!stepOn(j))j+=dir;ob.i=Math.max(0,Math.min(STEPS.length-1,j));render();scrollTo(0,0)}
 function nextMonday(){const d=new Date();d.setDate(d.getDate()+((8-d.getDay())%7||7));return key(d)}
 function guessSlot(l){
   if(/Debout|Lit fait|réveil|Priorité|pourquoi|Mouvement matinal|Visualisation|priorité/i.test(l))return"matin";
@@ -381,41 +394,64 @@ function buildPlan(A){
   return{goals,actions};
 }
 function vOnboard(){
-  const st=STEPS[ob.i],A=ob.a,pct=Math.round(ob.i/(STEPS.length-1)*100);
+  const st=STEPS[ob.i],A=ob.a,act=STEPS.map((s,i)=>i).filter(stepOn),pct=Math.round(act.indexOf(ob.i)/(act.length-1)*100);
   let body="";
   if(st.type==="text")body=`<input id="obIn" value="${esc(A[st.id]||"")}" placeholder="${st.ph}" autocomplete="off">`;
   if(st.type==="area")body=`<textarea id="obIn" placeholder="${esc(st.ph)}">${esc(A[st.id]||"")}</textarea>`;
   if(st.type==="single"||st.type==="multi"){const cur=A[st.id]||(st.type==="multi"?[]:"");
     body=st.opts.map(([v,l,s])=>`<button class="opt ${(st.type==="multi"?cur.includes(v):cur===v)?"sel":""}" data-ob="${v}">${esc(l)}${s?`<small>${esc(s)}</small>`:""}</button>`).join("")}
+  if(st.type==="form"){const F=A[st.id]||{};body=st.fields.map(([k,l,t,ph])=>`<label class="f">${l}</label>${t==="select"?`<select data-fk="${k}">${ph.map(([v,n])=>`<option value="${v}" ${F[k]===v?"selected":""}>${n}</option>`).join("")}</select>`
+    :`<input data-fk="${k}" ${t==="decimal"?'inputmode="decimal"':`type="${t}"`} value="${esc(F[k]||"")}" placeholder="${esc(ph||"")}">`}`).join("")}
   if(st.type==="presets"){const P=A.presets||{},T=A.targets||{};
     body=(A.domains||[]).map(k=>{const d=DOMAINS[k],sel=P[k];
       return`<div class="card"><div class="disp" style="font-size:15px;margin-bottom:10px">${d.emoji} ${d.name}</div>
       ${Object.entries(d.presets).map(([pk,p])=>`<button class="opt ${sel===pk?"sel":""}" data-pre="${k}:${pk}" style="padding:12px 14px">${esc(p.t)}</button>`).join("")}
       ${sel?`<input data-tg="${k}" value="${esc(T[k]||"")}" placeholder="${esc(d.presets[sel].ph)} (facultatif)">`:""}</div>`}).join("")}
-  if(st.type==="recap"){const p=buildPlan(A),st0=A.start==="monday"?nextMonday():today(),end=addDays(st0,S.length-1);
-    const nc=p.actions.filter(a=>a.core).length;
-    body=`<div class="mut sm" style="margin-bottom:12px">${p.actions.length} promesses dont <b style="color:var(--txt)">${nc} socles ⭐</b> (elles seules valident ta journée) · 3 phases de 30 jours · fin le ${fmt(end)} · tout reste modifiable</div>`+
+  if(st.type==="recap"){
+    if(hasM(A,"prog")){const p=buildPlan(A),st0=A.start==="monday"?nextMonday():today(),end=addDays(st0,S.length-1),nc=p.actions.filter(a=>a.core).length;
+      body=`<div class="mut sm" style="margin-bottom:12px">${p.actions.length} promesses dont <b style="color:var(--txt)">${nc} socles ⭐</b> (elles seules valident ta journée) · 3 phases de 30 jours · fin le ${fmt(end)} · tout reste modifiable</div>`+
       p.goals.map(g=>`<div class="card"><div class="disp" style="font-size:15px">${g.emoji} ${esc(g.name)}</div>${g.target?`<div class="mut sm">${esc(g.target)}</div>`:""}
       ${p.actions.filter(a=>a.goalId===g.id).map(a=>`<div class="act" style="cursor:default"><div class="ck"></div><div class="lbl">${a.core?"⭐ ":""}${esc(a.label)}<div class="det">${esc(a.steps?a.steps[0]:a.detail)}${a.freq!=="d"?` · ${FREQ[a.freq]||""}`:""}</div>${a.steps?`<div class="det" style="color:var(--acc2)">Phase 3 : ${esc(a.steps[2])}</div>`:""}</div><div class="xp">+${a.xp}</div></div>`).join("")}</div>`).join("")}
-  const q=st.type==="recap"?`${esc(A.name||"")}${A.name?", voici":"Voici"} ton programme 90 jours.`:st.q;
+    const B=A.body||{},Wf=A.wealth||{},Dr=A.dream||{},Dt=A.datesf||{},lines=[];
+    if(hasM(A,"body"))lines.push(`🔥 Physique${B.weight?` : ${B.weight} kg${B.target?" → "+B.target+" kg":""}`:" : à compléter"}`);
+    if(hasM(A,"wealth")){const net=["cash","placement","immo","societe"].reduce((s,k)=>s+(num(Wf[k])||0),0)-(num(Wf.debts)||0);lines.push(`💰 Patrimoine${net?` : net ${eur(net)}`:" : à compléter"}`)}
+    if(hasM(A,"dreams"))lines.push(`✦ Rêves${Dr.name?` : ${esc(Dr.name)}${num(Dr.price)?" ("+eur(num(Dr.price))+")":""}`:" : à ajouter"}`);
+    if(hasM(A,"todo"))lines.push("✅ To-do list activée");
+    if(hasM(A,"dates")){const n=[1,2,3].filter(i=>Dt["n"+i]&&Dt["d"+i]).length;lines.push(`📅 Dates importantes${n?` : ${n} anniversaire${n>1?"s":""}`:" : à ajouter"}`)}
+    if(lines.length)body+=`<div class="card"><b>Tes modules</b>${lines.map(l=>`<div class="rv"><span>${l}</span></div>`).join("")}<div class="mut sm" style="margin-top:6px">Tout se complète ou s'active plus tard : Progression → Réglages → Modules.</div></div>`;
+  }
+  const q=st.type==="recap"?`${esc(A.name||"")}${A.name?", voici":"Voici"} ${hasM(A,"prog")?"ton programme 90 jours":"ton espace"}.`:st.q;
   const ok=canNext();
   return`<div class="ob"><div class="prog"><i style="width:${pct}%"></i></div>
     <h2>${q}</h2>${st.sub?`<div class="mut" style="margin-bottom:18px">${st.sub}</div>`:`<div style="height:10px"></div>`}${body}
     <div class="foot">${ob.i>0?`<button class="btn" data-obnav="back">←</button>`:S.onboarded?`<button class="btn" data-obnav="cancel">Annuler</button>`:""}
-    <button class="btn p" style="flex:1;${ok?"":"opacity:.4"}" data-obnav="next">${st.type==="recap"?"Lancer mes 90 jours":"Continuer"}</button></div></div>`;
+    ${st.type==="form"?`<button class="btn" data-obnav="skip">Passer</button>`:""}
+    <button class="btn p" style="flex:1;${ok?"":"opacity:.4"}" data-obnav="next">${st.type==="recap"?(hasM(A,"prog")?"Lancer mes 90 jours":"C'est parti"):"Continuer"}</button></div></div>`;
 }
 function saveTargets(){if(!ob)return;ob.a.targets=ob.a.targets||{};document.querySelectorAll("[data-tg]").forEach(i=>ob.a.targets[i.dataset.tg]=i.value.trim())}
+function saveForm(){const st=STEPS[ob.i];if(st.type!=="form")return;const F={};document.querySelectorAll("[data-fk]").forEach(i=>F[i.dataset.fk]=i.value.trim());ob.a[st.id]=F}
 function canNext(){const st=STEPS[ob.i],v=ob.a[st.id];
   if(st.type==="presets")return(ob.a.domains||[]).every(k=>(ob.a.presets||{})[k]);
   if(st.type==="multi")return(v||[]).length>=st.min;if(st.type==="single")return!!v;if(st.id==="name")return!!(v&&v.trim());return true}
+function applyOnboarding(A){
+  const M={};MODS.forEach(([m])=>M[m]=hasM(A,m));S.modules=M;
+  S.profile={...(S.profile||{}),name:A.name,sex:A.sex,why:A.why,level:A.level,time:A.time,wake:A.wake,obst:A.obst||[],domains:A.domains,answers:A};
+  if(M.prog){const p=buildPlan(A);S.goals=p.goals;S.actions=p.actions;S.startDate=A.start==="monday"?nextMonday():today();S.lastPhase=0;{const t=wakeToTime(A.wake);if(t)S.notif.times.matin=t}S.archive=null}
+  else if(S.actions.length){S.archive={goals:S.goals,actions:S.actions};S.goals=[];S.actions=[]}
+  if(M.body){const B=A.body||{},w=num(B.weight);S.body={...(S.body||{}),age:num(B.age)||(S.body&&S.body.age)||null,height:num(B.height)||(S.body&&S.body.height)||null,target:num(B.target)||(S.body&&S.body.target)||null,goal:B.goal||(S.body&&S.body.goal)||"",log:(S.body&&S.body.log)||[]};
+    if(w){const L=S.body.log,l=L[L.length-1];if(l&&l.d===today())l.v=w;else L.push({d:today(),v:w});syncWeightToGoal(w)}}
+  if(M.wealth){const Wf=A.wealth||{},map={cash:"Trésorerie",placement:"Placements",immo:"Immobilier",societe:"Parts de sociétés"};
+    Object.entries(map).forEach(([c,n])=>{const v=num(Wf[c]);if(v)S.wealth.items.push({id:uid(),cat:c,name:n,value:Math.abs(v)})});
+    const d=num(Wf.debts);if(d)S.wealth.items.push({id:uid(),cat:"credit",name:"Crédits et dettes",value:Math.abs(d)});if(S.wealth.items.length)snapWealth()}
+  if(M.dreams){const Dr=A.dream||{};if(Dr.name){const o={id:uid(),name:Dr.name,price:num(Dr.price)||0,date:Dr.date||"",saved:0,why:"",art:"villa"};if(/aventador|lambo|ferrari|porsche|voiture|car\b/i.test(o.name))o.art="car";S.dreams.push(o)}}
+  if(M.dates){const Dt=A.datesf||{};[1,2,3].forEach(i=>{if(Dt["n"+i]&&Dt["d"+i])S.events.push({id:uid(),type:"anniv",name:Dt["n"+i],date:Dt["d"+i],prep:[7,3,0]})})}
+}
 function obNext(){
   const st=STEPS[ob.i],inp=document.getElementById("obIn");if(inp)ob.a[st.id]=inp.value.trim();
-  if(st.type==="presets")saveTargets();
+  if(st.type==="presets")saveTargets();saveForm();
   if(!canNext()){if(st.type==="presets")toast("Choisis un objectif pour chaque domaine");return}
-  if(st.type==="recap"){const p=buildPlan(ob.a);S.goals=p.goals;S.actions=p.actions;
-    S.profile={name:ob.a.name,sex:ob.a.sex,why:ob.a.why,level:ob.a.level,time:ob.a.time,wake:ob.a.wake,obst:ob.a.obst||[],domains:ob.a.domains,answers:ob.a};
-    S.startDate=ob.a.start==="monday"?nextMonday():today();S.lastPhase=0;{const t=wakeToTime(ob.a.wake);if(t)S.notif.times.matin=t}S.onboarded=true;ob=null;tab="today";persist();render();toast("Jour 1. Phase Fondation. Pas d'excuse.");return}
-  ob.i++;render();scrollTo(0,0);
+  if(st.type==="recap"){applyOnboarding(ob.a);S.onboarded=true;ob=null;tab="today";persist();render();toast(mod("prog")?"Jour 1. Phase Fondation. Pas d'excuse.":"Ton espace est prêt.");return}
+  obGo(1);
 }
 
 /* ---------- stockage sur le téléphone ---------- */
@@ -458,7 +494,8 @@ function buildNotifs(){
     ["matin","midi","aprem","soir"].forEach(s=>{const list=D.filter(a=>(a.slot||"")===s&&!timeOf(a,k)).sort((a,b)=>b.core-a.core);
       if(list.length)push(atTime(k,T[s]),`${SLOTS[s]} · ${list.length} promesse${list.length>1?"s":""}`,list.map(line).join("\n"),list.map(a=>a.id))});
     D.filter(a=>timeOf(a,k)).forEach(a=>push(atTime(k,timeOf(a,k)),"⏰ "+a.label,detailOf(a,k)||"C'est l'heure.",[a.id]));
-    evTasks(k).filter(e=>!L[e.key]).forEach(e=>push(atTime(k,e.time),e.e+" "+e.label,"Date importante · Ascension"));
+    if(mod("dates"))evTasks(k).filter(e=>!L[e.key]).forEach(e=>push(atTime(k,e.time),e.e+" "+e.label,"Date importante · Ascension"));
+    if(mod("todo"))(S.todos||[]).filter(t=>!t.done&&t.date===k&&t.time).forEach(t=>push(atTime(k,t.time),"✅ "+t.t,"À faire · Ascension"));
     {const rc=due(k).filter(a=>a.core&&!L[a.id]);if(rc.length&&S.notif.relance&&!S.jokers[k])push(atTime(k,S.notif.relance),`⚠️ Il te reste ${rc.length} socle${rc.length>1?"s":""}`,rc.map(a=>"• "+a.label).join("\n")+"\nTiens ta série 🔥",rc.map(a=>a.id))}
     if(!(i===0&&valid(k))){const core=due(k).filter(a=>a.core);
       push(atTime(k,S.notif.bilan),"🌙 Bilan du jour",core.length?"Ton socle : "+core.map(a=>a.label).join(", ")+". Coche ce que tu as tenu, puis 3 lignes au journal.":"Coche ce que tu as tenu, puis 3 lignes au journal.")}
@@ -534,6 +571,7 @@ function syncWidget(){
   if(!Tools||!S||!S.onboarded)return;
   const k=today(),L=S.log[k]||{},D=due(k),C=D.filter(a=>a.core),list=(C.length?C:D).slice(0,5),ph=phaseOf(k);
   const before=k<S.startDate,over=diff(S.startDate,k)>=S.length;
+  if(!mod("prog")){const T=todosFor(k).slice(0,5);Tools.updateWidget({data:JSON.stringify({date:k,head:"ASCENSION · À FAIRE",streak:"",sub:T.length?`${T.filter(t=>t.done).length}/${T.length} fait`:"Rien à faire aujourd'hui",core:T.map(t=>({l:t.t,d:!!t.done}))})}).catch(()=>{});return}
   const o={date:k,head:before?"ASCENSION · DÉPART LE "+fmt(S.startDate).toUpperCase():over?"ASCENSION · PROGRAMME TERMINÉ":`JOUR ${dayNum()}/${S.length} · ${PHASES[ph].toUpperCase()}`,
     streak:"🔥 "+streak(),sub:valid(k)?"Journée validée ✓":(C.length?`Socle ${C.filter(a=>L[a.id]).length}/${C.length}`:`${D.filter(a=>L[a.id]).length}/${D.length} promesses`),
     core:list.map(a=>({l:a.label,d:!!L[a.id]}))};
@@ -676,7 +714,7 @@ function vJournal(k){const J=(S.journal||{})[k]||{},open=new Date().getHours()>=
   ${JQ.map(([f,q])=>`<label class="f">${q}</label><textarea data-jr="${f}" data-jd="${k}" rows="2">${esc(J[f]||"")}</textarea>`).join("")}</details>`}
 
 /* ---------- rituel du matin ---------- */
-function ritualDue(){const k=today();return S.onboarded&&!ob&&k>=S.startDate&&diff(S.startDate,k)<S.length&&new Date().getHours()<14&&!(S.ritual||{})[k]}
+function ritualDue(){const k=today();return mod("prog")&&S.actions.length&&S.onboarded&&!ob&&k>=S.startDate&&diff(S.startDate,k)<S.length&&new Date().getHours()<14&&!(S.ritual||{})[k]}
 function vRitual(){
   const k=today(),D=due(k),C=D.filter(a=>a.core),ph=phaseOf(k),nm=S.profile&&S.profile.name;
   return`<div class="rit"><div class="ritlogo"><svg viewBox="0 0 512 512"><polygon points="256,92 280,138 168,404 124,404" fill="url(#goldg)"/><polygon points="256,92 388,404 344,404 232,138" fill="url(#goldg)"/><polyline points="190,338 256,256 322,338" fill="none" stroke="url(#goldg)" stroke-width="24"/></svg></div>
@@ -821,8 +859,8 @@ function vAgenda(){
   <div class="card"><div class="disp" style="font-size:16px">Agenda du téléphone</div>
    ${S.cal&&S.cal.on&&calState!=="denied"?`<div class="mut sm" style="margin:6px 0">✓ Connecté. Tes rendez-vous (Google Agenda compris) s'affichent dans ta journée et les promesses qui tombent pendant un rendez-vous sont signalées.</div><div class="row" style="gap:8px"><button class="btn" data-do="calrefresh">Actualiser</button><button class="btn" data-do="caloff">Déconnecter</button></div>`
    :`<div class="mut sm" style="margin:6px 0 10px">Affiche tes rendez-vous dans ta journée et repère les conflits. Lecture seule : Ascension ne modifie jamais ton agenda.</div><button class="btn p" data-do="calon">Connecter mon agenda</button>`}</div>
-  <div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Mes journées types</div>${vTypes()}</div>
-  <div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Dates importantes</div>${vEvents()}</div>`;
+  ${mod("prog")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Mes journées types</div>${vTypes()}</div>`:""}
+  ${mod("dates")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Dates importantes</div>${vEvents()}</div>`:""}`;
 }
 
 /* ---------- agenda du téléphone (Google Agenda synchronisé) ---------- */
@@ -854,7 +892,8 @@ let dreamEdit=null,visTab="dreams";
 function vVision(){
   const D=S.dreams||[],tot=D.reduce((s,d)=>s+(+d.price||0),0),sav=D.reduce((s,d)=>s+(+d.saved||0),0),pm=D.reduce((s,d)=>s+(dreamNeed(d).perMonth||0),0);
   let h=`<div class="top"><div><div class="day">Ce pour quoi tu te lèves</div><h1 class="big">Vision</h1></div><button class="btn eye" data-do="discreet">${S.discreet?"👁 Afficher":"🙈 Masquer"}</button></div>
-  <div class="seg"><button class="${visTab!=="wealth"?"on":""}" data-do="vtab:dreams">Mes rêves</button><button class="${visTab==="wealth"?"on":""}" data-do="vtab:wealth">Patrimoine</button></div>`;
+  ${mod("dreams")&&mod("wealth")?`<div class="seg"><button class="${visTab!=="wealth"?"on":""}" data-do="vtab:dreams">Mes rêves</button><button class="${visTab==="wealth"?"on":""}" data-do="vtab:wealth">Patrimoine</button></div>`:""}`;
+  if(!mod("dreams"))visTab="wealth";if(!mod("wealth"))visTab="dreams";
   if(visTab==="wealth")return h+vWealth();
   if(D.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><div><div class="mut sm">Total de tes rêves</div><div class="disp" style="font-size:24px">${amt(tot)}</div></div><div style="text-align:right"><div class="mut sm">Déjà réuni</div><div class="disp" style="font-size:18px;color:var(--acc2)">${amt(sav)}</div></div></div>
     <div class="bar"><i style="width:${tot?Math.min(100,sav/tot*100):0}%"></i></div>
@@ -958,6 +997,62 @@ const lockScreen=t=>`<div class="lock"><svg viewBox="0 0 512 512"><polygon point
   <div class="disp" style="font-size:22px;margin:14px 0 6px">${t==="vision"?"Vision et patrimoine protégés":"Ascension est verrouillée"}</div><div class="mut sm">Empreinte, visage ou code du téléphone.</div>
   <button class="btn p" style="margin-top:18px;padding:13px 26px" data-do="unlock:${t}">🔓 Déverrouiller</button></div>`;
 
+/* ---------- physique ---------- */
+function bodyGoal(){return S.goals.find(g=>g.key==="body"&&g.metric&&/poids/i.test(g.metric.n))}
+function syncWeightToGoal(w){const g=bodyGoal();if(!g)return;const m=S.measures[g.id]||(S.measures[g.id]=[]),l=m[m.length-1];if(l&&l.d===today())l.v=w;else m.push({d:today(),v:w})}
+function addWeight(w){S.body=S.body||{log:[]};const L=S.body.log||(S.body.log=[]),l=L[L.length-1];if(l&&l.d===today())l.v=w;else L.push({d:today(),v:w});syncWeightToGoal(w)}
+function vBody(){
+  const B=S.body||{},L=B.log||[],w=L.length?L[L.length-1].v:null,h=B.height;
+  const imc=w&&h?w/((h/100)**2):null,cat=imc?(imc<18.5?"insuffisance pondérale":imc<25?"corpulence normale":imc<30?"surpoids":"obésité"):"";
+  let eta="";if(w&&B.target&&Math.abs(w-B.target)>=.5){const wk=Math.abs(w-B.target)/(B.target<w?.5:.25),d=new Date();d.setDate(d.getDate()+Math.round(wk*7));
+    eta=`À un rythme sain (${B.target<w?"−0,5":"+0,25"} kg/semaine), ton objectif est atteignable vers <b style="color:var(--acc2)">${d.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b>.`}
+  const first=L[0];
+  return`<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="disp" style="font-size:16px">🔥 Physique</div>
+    <div class="disp" style="font-size:26px;margin-top:4px">${w!==null?fnum(w)+" kg":"—"}</div>
+    <div class="mut sm">${B.target?`Objectif ${fnum(B.target)} kg${w!==null?` · reste ${fnum(Math.abs(w-B.target))} kg`:""}`:"Objectif à définir"}${first&&L.length>1?` · ${w-first.v>0?"+":""}${fnum(w-first.v)} kg depuis le ${fmt(first.d)}`:""}</div></div>${spark(L.map(x=>x.v))}</div>
+    ${imc?`<div class="mut sm" style="margin-top:8px">IMC ${fnum(imc)} (${cat}). Repère indicatif, qui ne tient pas compte de la masse musculaire.</div>`:""}
+    ${eta?`<div class="mut sm" style="margin-top:6px">${eta}</div>`:""}
+    <div class="row" style="gap:8px;margin-top:10px"><input inputmode="decimal" id="bW" placeholder="Pesée du jour (kg)"><button class="btn p" data-do="bweigh">Enregistrer</button></div>
+    <details class="jh" style="margin-top:8px"><summary><span class="mut sm">Mes infos (âge, taille, objectif)</span></summary>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px"><div><label class="f">Âge</label><input data-bd="age" inputmode="numeric" value="${B.age||""}"></div><div><label class="f">Taille (cm)</label><input data-bd="height" inputmode="numeric" value="${B.height||""}"></div><div><label class="f">Objectif (kg)</label><input data-bd="target" inputmode="decimal" value="${B.target||""}"></div></div></details></div>`;
+}
+
+/* ---------- to-do list ---------- */
+let todoDate="";
+function todosFor(k){const T=S.todos||[];return T.filter(t=>t.done?t.doneAt===k:(!t.date||t.date<=k)).sort((a,b)=>(a.done-b.done)||((a.date&&a.date<k)?-1:0)-((b.date&&b.date<k)?-1:0)||((a.time||"99")<(b.time||"99")?-1:1))}
+function vTodo(k){
+  const L=todosFor(k),fut=(S.todos||[]).filter(t=>!t.done&&t.date&&t.date>k).sort((a,b)=>a.date<b.date?-1:1);
+  return`<div class="card"><div class="goal-h"><div class="disp">✅ À faire</div><div class="mut sm">${L.filter(t=>t.done).length}/${L.length}</div></div>
+  ${L.map(t=>`<div class="act ${t.done?"done":""}" data-todo="${t.id}"><div class="ck"></div><div class="lbl">${esc(t.t)}${t.date||t.time?`<div class="det" style="${t.date&&t.date<k&&!t.done?"color:#f0b46a":""}">${t.date&&t.date<k&&!t.done?"En retard · ":""}${t.date?fmt(t.date):""}${t.time?" · "+t.time:""}</div>`:""}</div><button class="tbtn" data-tdel="${t.id}">✕</button></div>`).join("")||`<div class="mut sm">Rien pour l'instant.</div>`}
+  <div class="todo-add"><input id="tdT" placeholder="Nouvelle tâche…"><input id="tdD" type="date" value="${todoDate}"><input id="tdH" type="time"><button class="btn p" data-do="tdadd">+</button></div>
+  ${fut.length?`<details class="jh" style="margin-top:6px"><summary><span class="mut sm">À venir (${fut.length})</span></summary>${fut.map(t=>`<div class="rv"><span>${esc(t.t)}</span><span class="mut sm">${fmt(t.date)}${t.time?" · "+t.time:""} <button class="tbtn" data-tdel="${t.id}">✕</button></span></div>`).join("")}</details>`:""}</div>`;
+}
+
+/* ---------- écran du jour sans programme ---------- */
+function vTodaySimple(k){
+  const nm=S.profile&&S.profile.name;
+  let h=updBanner()+`<div class="top"><div><div class="day">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</div><h1 class="big">${nm?"Bonjour "+esc(nm):"Aujourd'hui"}<span>.</span></h1></div></div>`;
+  if(mod("dreams")&&(S.dreams||[]).length)h+=`<div class="vis">${S.dreams.map(d=>`<div class="vcard" data-tabgo="vision">${dreamVisual(d)}<div class="vov"></div><div class="vtx"><div class="vk">✦ Rêve · ${Math.round(dreamNeed(d).pct)} %</div><div class="vt">${esc(d.name)}</div></div></div>`).join("")}</div>`;
+  if(mod("dates")){const u=upcoming(14);if(u.length)h+=`<div class="card banner" data-tabgo="agenda"><b>📅 À venir</b>${u.slice(0,3).map(x=>{const dd=diff(today(),x.o);return`<div class="mut sm">${(EVT[x.ev.type]||EVT.rdv).e} ${esc(x.ev.name)} · ${dd===0?"aujourd'hui":dd===1?"demain":"dans "+dd+" jours"}</div>`}).join("")}</div>`;
+    const et=evTasks(k);if(et.length)h+=`<div class="card"><b>🎁 Aujourd'hui</b>${et.map(e=>`<div class="act ${(S.log[k]||{})[e.key]?"done":""}" data-evt="${e.key}"><div class="ck"></div><div class="lbl">${e.e} ${esc(e.label)}</div></div>`).join("")}</div>`}
+  if(mod("wealth")&&wealthDue()&&new Date().getDate()<=10)h+=`<div class="card banner" data-do="vtab:wealth"><b>💰 Relevé de patrimoine du mois</b><div class="mut sm">2 minutes pour mettre tes montants à jour</div></div>`;
+  const cal=calOf(k);if(cal.length)h+=`<div class="card"><b>📅 Ton agenda</b>${cal.map(c=>`<div class="rv"><span>${esc(c.title)}</span><span class="mut sm">${c.allDay?"journée":hm(c.b)+"–"+hm(c.e)}</span></div>`).join("")}</div>`;
+  if(mod("todo"))h+=vTodo(k);
+  if(mod("body"))h+=vBody();
+  if(!mod("todo")&&!mod("body")&&!mod("dates")&&!cal.length)h+=`<div class="card empty mut">Active des modules dans Progression → Réglages → Modules.</div>`;
+  return h;
+}
+
+/* ---------- modules activables plus tard ---------- */
+function toggleModule(m){
+  S.modules=S.modules||{};const on=!mod(m);
+  if(m==="prog"){if(on){if(S.archive){S.goals=S.archive.goals;S.actions=S.archive.actions;S.archive=null;S.modules.prog=true;toast("Programme réactivé")}
+      else{S.modules.prog=true;const A={...(S.profile&&S.profile.answers||{})};A.modules=[...new Set([...(A.modules||[]),"prog"])];ob={i:STEPS.findIndex(x=>x.id==="domains"),a:A};render();scrollTo(0,0);return}}
+    else{S.archive={goals:S.goals,actions:S.actions};S.goals=[];S.actions=[];S.modules.prog=false;toast("Programme mis en pause (rien n'est perdu)")}}
+  else{S.modules[m]=on;toast(on?"Module activé : complète-le quand tu veux":"Module masqué (tes données sont gardées)")}
+  persist();render();
+}
+
 /* ---------- logique ---------- */
 const entries=()=>Object.values(S.log).flatMap(d=>Object.values(d));
 const totalXP=()=>entries().reduce((a,e)=>a+e.x,0);
@@ -1003,6 +1098,7 @@ function render(){
   const el0=document.getElementById("app"),nav=document.getElementById("nav");
   if(!S.onboarded||ob){if(!ob)ob={i:0,a:{...(S.profile&&S.profile.answers||{})}};nav.style.display="none";el0.innerHTML=vOnboard();return}
   nav.style.display="";applyDiscreet();
+  {const vis={goals:mod("prog"),vision:mod("dreams")||mod("wealth"),agenda:true};document.querySelectorAll("nav button").forEach(b=>b.style.display=vis[b.dataset.tab]===false?"none":"");if(vis[tab]===false)tab="today"}
   if(locked){nav.style.display="none";el0.innerHTML=lockScreen("app");return}
   const p=phaseOf(today());
   if(p>(S.lastPhase||0)&&today()>=S.startDate){S.lastPhase=p;persist();setTimeout(()=>toast(`Phase ${p+1} : ${PHASES[p]}. Les charges montent.`),300)}
@@ -1020,6 +1116,7 @@ function actRow(a,k,L,showGoal){
    <div style="text-align:right">${a.time?`<div class="mut sm">${esc(a.time)}</div>`:""}<div class="xp">+${a.xp}</div>${!L[a.id]&&k===today()&&durOf(a,k)?`<button class="tbtn" data-timer="${a.id}">⏱ ${mmss(durOf(a,k))}</button>`:""}</div></div>`;
 }
 function vToday(){
+  if(!mod("prog"))return vTodaySimple(today());
   const k=today(),L=S.log[k]||{},xp=totalXP(),g=gradeOf(xp),D=due(k),C=D.filter(a=>a.core),B=D.filter(a=>!a.core);
   const cDone=C.filter(a=>L[a.id]).length,bDone=B.filter(a=>L[a.id]).length;
   const r=S.jokers[k]?(Object.keys(L).length?1:0):C.length?cDone/C.length:ratio(k);
@@ -1064,6 +1161,7 @@ function vToday(){
       h+=`<div class="card"><div class="goal-h"><div class="disp">${esc(go.emoji)} ${esc(go.name)}</div><div class="mut sm">Niv. ${lvl(goalXP(go.id))}</div></div>
       ${go.target?`<div class="mut sm" style="margin:-4px 0 6px">${esc(go.target)}</div>`:""}${acts.map(a=>actRow(a,k,L,false)).join("")}</div>`});
   }
+  if(mod("todo"))h+=vTodo(k);
   if(!before)h+=vJournal(k);
   const off=S.actions.length-D.length;
   if(off)h+=`<div class="mut sm" style="text-align:center;margin:-2px 0 12px">${off} promesse${off>1?"s":""} pas prévue${off>1?"s":""} aujourd'hui (fréquence)</div>`;
@@ -1117,8 +1215,10 @@ function vStats(){
   }
   let held=0;for(let d=S.startDate;d<=k&&diff(S.startDate,d)<S.length;d=addDays(d,1))if(valid(d))held++;
   const elapsed=Math.max(0,Math.min(S.length,diff(S.startDate,k)+1)),ph=phaseOf(k);
-  let h=`<div class="top"><div><div class="day">${held} jours tenus sur ${elapsed}</div><h1 class="big">Progression</h1></div></div>
-  <div class="card"><div class="phases">${PHASES.map((n,i)=>`<div class="${i===ph?"on":i<ph?"done":""}"><b>${i+1}. ${n}</b><span>${fmt(phaseStart(i))} → ${fmt(i<2?addDays(phaseStart(i+1),-1):addDays(S.startDate,S.length-1))}</span></div>`).join("")}</div></div>
+  let h=`<div class="top"><div><div class="day">${mod("prog")?held+" jours tenus sur "+elapsed:"Suivi et réglages"}</div><h1 class="big">Progression</h1></div></div>
+  ${mod("body")?vBody():""}`;
+  if(mod("prog")){
+  h+=`<div class="card"><div class="phases">${PHASES.map((n,i)=>`<div class="${i===ph?"on":i<ph?"done":""}"><b>${i+1}. ${n}</b><span>${fmt(phaseStart(i))} → ${fmt(i<2?addDays(phaseStart(i+1),-1):addDays(S.startDate,S.length-1))}</span></div>`).join("")}</div></div>
   <div class="card"><div class="grid66">${cells}</div>
   <div class="mut sm" style="margin-top:10px">Or vif = socle tenu · foncé = partiel · 🛡 = jour minimum</div></div>
   <div class="card"><div class="disp" style="font-size:16px;margin-bottom:6px">Mesures de la semaine</div>`;
@@ -1136,8 +1236,12 @@ function vStats(){
   <div class="card"><div class="disp" style="font-size:16px;margin-bottom:4px">Compétences</div>`;
   S.goals.forEach(go=>{const x=goalXP(go.id),l=lvl(x),lo=(l-1)**2*40,hi=l**2*40;
     h+=`<div class="skill"><div class="row" style="justify-content:space-between"><span>${esc(go.emoji)} ${esc(go.name)}</span><span class="mut sm">Niv. ${l} · ${x} XP</span></div><div class="bar"><i style="width:${Math.round((x-lo)/(hi-lo)*100)}%"></i></div></div>`});
+  h+=`</div>`;
+  }
+  h+=`<div class="card"><div class="disp" style="font-size:16px">Modules</div><div class="mut sm" style="margin:6px 0 8px">Active ce qui t'intéresse. Un module masqué garde ses données.</div>
+    ${MODS.map(([m,l,d])=>`<div class="modr"><div><b>${l}</b><div class="mut sm">${d}</div></div><button class="btn ${mod(m)?"p":""}" ${m==="prog"&&mod(m)?"data-confirm":"data-do"}="modt:${m}">${mod(m)?"Activé":"Activer"}</button></div>`).join("")}</div>`;
   const JK=Object.keys(S.journal||{}).filter(d=>{const J=S.journal[d];return J.w||J.f||J.c}).sort().reverse().slice(0,10);
-  h+=`</div><div class="card"><div class="disp" style="font-size:16px;margin-bottom:6px">Journal</div>${JK.length?JK.map(d=>{const J=S.journal[d];return`<details class="jh"><summary>${fmt(d)}<span class="mut sm">${esc((J.w||J.f||J.c||"").slice(0,40))}…</span></summary>${JQ.map(([f,q])=>J[f]?`<div class="mut sm" style="margin-top:6px">${q}</div><div>${esc(J[f])}</div>`:"").join("")}</details>`}).join(""):`<div class="mut sm">Ton journal du soir apparaîtra ici.</div>`}</div>
+  h+=`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:6px">Journal</div>${JK.length?JK.map(d=>{const J=S.journal[d];return`<details class="jh"><summary>${fmt(d)}<span class="mut sm">${esc((J.w||J.f||J.c||"").slice(0,40))}…</span></summary>${JQ.map(([f,q])=>J[f]?`<div class="mut sm" style="margin-top:6px">${q}</div><div>${esc(J[f])}</div>`:"").join("")}</details>`}).join(""):`<div class="mut sm">Ton journal du soir apparaîtra ici.</div>`}</div>
   <div class="card"><div class="disp" style="font-size:16px">Sauvegarde</div>
     <div class="mut sm" style="margin:6px 0 10px">${Tools?`Copie automatique chaque semaine dans <b>Téléchargements/Ascension</b>. Dernière : ${S.lastBackup?fmt(S.lastBackup):"jamais"}.`:"La sauvegarde automatique fonctionne dans l'appli Android installée."}</div>
     <div class="row" style="flex-wrap:wrap;gap:8px">${Tools?`<button class="btn p" data-do="backup">Sauvegarder maintenant</button>`:""}
@@ -1182,6 +1286,11 @@ function run(cmd){
   if(c==="ritualskip"){S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();return}
   if(c==="ritualopen"){openModal(vRitual());return}
   if(c==="nextcycle"){nextCycle();return}
+  if(c==="modt"){toggleModule(id);return}
+  if(c==="bweigh"){const v=num((document.getElementById("bW")||{}).value);if(v===null||v<20||v>400){toast("Saisis ton poids en kg");return}addWeight(v);persist();checkTrophies();render();toast("Pesée enregistrée");return}
+  if(c==="tdadd"){const t=(document.getElementById("tdT").value||"").trim();if(!t){toast("Écris ta tâche");return}
+    const d=document.getElementById("tdD").value||"",hh=document.getElementById("tdH").value||"";S.todos=S.todos||[];S.todos.push({id:uid(),t,date:d,time:hh,done:false});todoDate=d;persist();render();
+    setTimeout(()=>{const i=document.getElementById("tdT");i&&i.focus()},50);return}
   if(c==="unlock"){unlock(id);return}
   if(c==="lock"){setLock(id);return}
   if(c==="discreet"){S.discreet=!S.discreet;persist();applyDiscreet();render();return}
@@ -1229,7 +1338,9 @@ function run(cmd){
   if(c==="joker"){if(jokersUsed(k)<JOKERS_PER_MONTH){S.jokers[k]=true;toast("Jour minimum : une promesse suffit. Choisis la plus importante.")}}
   if(c==="unjoker")delete S.jokers[k];
   if(c==="meas"){const i=document.querySelector(`[data-mv="${id}"]`),v=i&&num(i.value);if(v===null){toast("Saisis un nombre");return}
-    const m=S.measures[id]||(S.measures[id]=[]);const last=m[m.length-1];if(last&&last.d===k)last.v=v;else m.push({d:k,v});toast("Mesure enregistrée");checkTrophies()}
+    const m=S.measures[id]||(S.measures[id]=[]);const last=m[m.length-1];if(last&&last.d===k)last.v=v;else m.push({d:k,v});
+    {const g=S.goals.find(x=>x.id===id);if(g&&g.key==="body"&&/poids/i.test(g.metric.n)&&mod("body")){S.body=S.body||{log:[]};const L=S.body.log||(S.body.log=[]),l=L[L.length-1];if(l&&l.d===k)l.v=v;else L.push({d:k,v})}}
+    toast("Mesure enregistrée");checkTrophies()}
   if(c==="update"){doUpdate();return}
   if(c==="checkupd"){checkUpdate(true).then(()=>toast(upd?"Nouvelle version disponible":"Tu as la dernière version"));return}
   if(c==="unphoto"){delete S.photos[id];toast("Photo retirée")}
@@ -1251,10 +1362,13 @@ document.addEventListener("click",e=>{
   const pre=e.target.closest("[data-pre]");
   if(pre&&ob){saveTargets();const[k,pk]=pre.dataset.pre.split(":");ob.a.presets={...(ob.a.presets||{}),[k]:pk};render();return}
   const onv=e.target.closest("[data-obnav]");
-  if(onv&&ob){if(onv.dataset.obnav==="cancel"){ob=null;render()}else if(onv.dataset.obnav==="back"){ob.i=Math.max(0,ob.i-1);render()}else obNext();return}
+  if(onv&&ob){const nv=onv.dataset.obnav;if(nv==="cancel"){ob=null;render()}else if(nv==="back"){saveForm();obGo(-1)}else if(nv==="skip"){ob.a[STEPS[ob.i].id]={};obGo(1)}else obNext();return}
   const nb=e.target.closest("nav button");if(nb){tab=nb.dataset.tab;render();scrollTo(0,0);return}
   const tg=e.target.closest("[data-tabgo]");if(tg){tab=tg.dataset.tabgo;render();scrollTo(0,0);return}
   const vw=e.target.closest("[data-view]");if(vw){S.view=vw.dataset.view;persist();render();return}
+  const tdl=e.target.closest("[data-tdel]");if(tdl){S.todos=(S.todos||[]).filter(t=>t.id!==tdl.dataset.tdel);persist();render();return}
+  const tdo=e.target.closest("[data-todo]");if(tdo){const t=(S.todos||[]).find(x=>x.id===tdo.dataset.todo);if(t){const k=today(),L=S.log[k]||(S.log[k]={});t.done=!t.done;t.doneAt=t.done?k:null;
+    if(t.done){L["td:"+t.id]={x:5,g:null};toast("✓ Fait")}else delete L["td:"+t.id];if(!Object.keys(L).length)delete S.log[k];persist();checkTrophies();render()}return}
   const mvb=e.target.closest("[data-move]");if(mvb){moveSheet(mvb.dataset.move,today());return}
   const evb=e.target.closest("[data-evt]");if(evb){const k=today(),key=evb.dataset.evt,L=S.log[k]||(S.log[k]={});if(L[key])delete L[key];else{L[key]={x:10,g:null};toast("✓ C'est fait")}if(!Object.keys(L).length)delete S.log[k];persist();render();return}
   const tm=e.target.closest("[data-timer]");if(tm){startTimer(tm.dataset.timer);return}
@@ -1276,6 +1390,7 @@ document.addEventListener("change",e=>{
   if(t.dataset.gart){const g=S.goals.find(x=>x.id===t.dataset.gart);if(g){g.art=t.value;if(S.photos[g.id])toast("Ta photo reste prioritaire : retire-la pour voir l'illustration");persist();render()}}
   if(t.dataset.photo&&t.files&&t.files[0]){const gid=t.dataset.photo;readPhoto(t.files[0],u=>{S.photos[gid]=u;persist();render();toast("Photo ajoutée")})}
   if(t.dataset.wt){const a=S.actions.find(x=>x.id===t.dataset.wt);if(a&&t.value){a.wt=a.wt||{};a.wt[typeDay]=t.value;S.moves=S.moves||[];S.moves.push({d:today(),aid:a.id,kind:"wd",from:"",to:t.value});persist();render()}}
+  if(t.dataset.bd){S.body=S.body||{log:[]};const v=num(t.value);S.body[t.dataset.bd]=v;persist();render()}
   if(t.dataset.wv){const i=S.wealth.items.find(x=>x.id===t.dataset.wv),v=num(t.value);if(i&&v!==null){i.value=Math.abs(v);snapWealth();persist();render()}}
   if(t.dataset.dphoto&&t.files&&t.files[0]){const id=t.dataset.dphoto;readPhoto(t.files[0],u=>{S.photos["d:"+id]=u;persist();render();toast("Photo ajoutée")})}
   if(t.dataset.pt){S.partner=S.partner||{};S.partner[t.dataset.pt]=t.value.trim();persist()}
