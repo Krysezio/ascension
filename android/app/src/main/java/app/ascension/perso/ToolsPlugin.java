@@ -1,6 +1,12 @@
 package app.ascension.perso;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.Intent;
+import android.speech.RecognizerIntent;
+import androidx.activity.result.ActivityResult;
+import com.getcapacitor.annotation.ActivityCallback;
+import java.util.ArrayList;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
@@ -213,6 +219,30 @@ public class ToolsPlugin extends Plugin {
             r.put("deleted", n);
             call.resolve(r);
         } catch (Exception e) { call.reject("Suppression impossible : " + e.getMessage()); }
+    }
+
+    // ---------- dictée vocale (reconnaissance vocale Google intégrée à Android) ----------
+    @PluginMethod
+    public void listen(PluginCall call) {
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR");
+        i.putExtra(RecognizerIntent.EXTRA_PROMPT, call.getString("prompt", "Je t'écoute…"));
+        try {
+            startActivityForResult(call, i, "listenResult");
+        } catch (Exception e) {
+            call.reject("Reconnaissance vocale indisponible sur ce téléphone");
+        }
+    }
+
+    @ActivityCallback
+    private void listenResult(PluginCall call, ActivityResult r) {
+        if (call == null) return;
+        if (r.getResultCode() != Activity.RESULT_OK || r.getData() == null) { call.reject("cancel"); return; }
+        ArrayList<String> m = r.getData().getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+        JSObject o = new JSObject();
+        o.put("text", m != null && !m.isEmpty() ? m.get(0) : "");
+        call.resolve(o);
     }
 
     private static int authenticators() {

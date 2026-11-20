@@ -183,6 +183,7 @@ nav button{max-width:110px;font-size:11px}
 .gck{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--acc);margin-top:1px;box-sizing:border-box}
 .gb.done .gck{background:var(--acc)}
 .gic{flex:none;font-size:12px;margin-top:1px}
+.btn.mic{font-size:17px;padding:8px 12px}
 .gb.one{align-items:center;padding-top:2px;padding-bottom:2px}.gb.one .gtx{display:flex;gap:6px;align-items:baseline}.gb.one .gtx b{flex:0 1 auto;min-width:0}.gb.one .gtx small{flex:1 1 0;min-width:0}.gb.one .gck{margin-top:0}
 .glegend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--mut);margin-bottom:14px}.glegend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}.lt{background:#16130d;border:1px solid var(--acc)}.lr{background:var(--acc)}
 .clash{font-size:12px;color:#f0b46a;padding:0 0 8px 60px;cursor:pointer}
@@ -526,7 +527,7 @@ function persist(){lsSet();clearTimeout(persist.t);persist.t=setTimeout(async()=
 async function init(){
   let s=null;
   try{if(Prefs){const r=await Prefs.get({key:"state"});if(r&&r.value)s=JSON.parse(r.value)}}catch(e){}
-  S=migrate(s||lsGet());
+  S=migrate(s||lsGet());await aiLoad();
   syncState=NATIVE?"Données enregistrées sur ce téléphone":"Aperçu navigateur — données locales";
   try{const v=await fetch("version.json",{cache:"no-store"}).then(r=>r.json());myBuild=+v.build||0}catch(e){}
   if(lockMode()==="app")locked=true;applyDiscreet();
@@ -920,6 +921,99 @@ function vEvents(){
    <button class="btn p" style="width:100%;margin-top:10px" data-do="evadd">Ajouter</button></div>`;
 }
 let evType="anniv";
+/* ---------- assistant vocal : dictée Android + compréhension par Claude ---------- */
+let aiKey="",aiState="";
+const AIK="ascension_ai_key";
+async function aiLoad(){try{if(Prefs){const r=await Prefs.get({key:"aikey"});aiKey=(r&&r.value)||""}else aiKey=localStorage.getItem(AIK)||""}catch(e){}}
+async function aiSaveKey(k){aiKey=(k||"").trim();try{if(Prefs)await Prefs.set({key:"aikey",value:aiKey});else localStorage.setItem(AIK,aiKey)}catch(e){}}
+const WDAY=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+function aiSystem(){
+  const n=new Date(),k=today(),days=[...Array(8)].map((_,i)=>{const d=addDays(k,i);return WDAY[parse(d).getDay()]+" "+d}).join(", ");
+  return`Tu transformes une phrase dictée en français en éléments d'agenda pour l'appli Ascension.
+Aujourd'hui : ${WDAY[n.getDay()]} ${k}, il est ${z(n.getHours())}:${z(n.getMinutes())}. Les 8 prochains jours : ${days}.
+Réponds UNIQUEMENT avec un objet JSON, sans texte autour :
+{"items":[{"kind":"rdv"|"task","title":"…","date":"YYYY-MM-DD" ou "","time":"HH:MM" ou "","dur":minutes,"loc":"…"}]}
+Règles :
+- "rdv" = rendez-vous, réunion, repas, appel planifié avec quelqu'un, consultation. "task" = chose à faire (appeler, envoyer, acheter, préparer…).
+- title : court et clair, avec la personne ou l'objet, sans la date ni l'heure ni le lieu. Majuscule au début. Ex. "Rendez-vous avec Paul", "Appeler la banque".
+- loc : le lieu s'il est dit (chez le notaire, à Rennes…), sinon "".
+- date : résous « demain », « jeudi », « le 3 », « la semaine prochaine » (lundi prochain). Si une heure est donnée sans date : aujourd'hui si l'heure n'est pas passée, sinon demain. Tâche sans date ni heure : "".
+- time : "HH:MM" sur 24 h (« 3 h de l'après-midi » = 15:00, « midi » = 12:00, « 9 h et demie » = 09:30). Sinon "".
+- dur : durée dite, sinon 60 pour un rdv, 30 pour une tâche.
+- Plusieurs éléments dans la phrase = plusieurs objets dans items.`;
+}
+function jsonOf(t){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<a)throw new Error("Réponse illisible");return JSON.parse(t.slice(a,b+1))}
+async function aiParse(text){
+  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"x-api-key":aiKey,"anthropic-version":"2023-06-01","content-type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:"claude-haiku-5-5",max_tokens:500,system:aiSystem(),messages:[{role:"user",content:text}]})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const m=(j.error&&j.error.message)||("HTTP "+r.status);throw new Error(r.status===401?"Clé refusée":r.status===429?"Limite atteinte":/credit|balance/i.test(m)?"Crédit épuisé":m)}
+  S.ai=S.ai||{};const mo=today().slice(0,7);if(S.ai.m!==mo){S.ai.m=mo;S.ai.n=0;S.ai.tok=0}S.ai.n++;S.ai.tok+=((j.usage||{}).input_tokens||0)+5*((j.usage||{}).output_tokens||0);persist();
+  const o=jsonOf(((j.content||[]).find(c=>c.type==="text")||{}).text||"");return(o.items||[]).filter(i=>i&&i.title);
+}
+/* analyse locale de secours (sans IA) */
+const NUMW={un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,neuf:9,dix:10,onze:11,douze:12,treize:13,quatorze:14,quinze:15,seize:16,"dix-sept":17,"dix-huit":18,"dix-neuf":19,vingt:20,"vingt-et-un":21,"vingt-deux":22,"vingt-trois":23};
+function localParse(text){
+  const R=(s)=>new RegExp("(?<![\\p{L}\\d])(?:"+s+")(?![\\p{L}\\d])","iu");
+  let t=" "+String(text).replace(/[’']/g," ")+" ",date="",time="",k=today(),loc="";
+  const cut=re=>{const m=re.exec(t);if(m)t=t.slice(0,m.index)+" "+t.slice(m.index+m[0].length);return m};
+  t=t.replace(new RegExp("(?<![\\p{L}])("+Object.keys(NUMW).sort((a,b)=>b.length-a.length).join("|")+")\\s+(heures?|h)(?![\\p{L}])","giu"),(m,a)=>NUMW[a.toLowerCase()]+" h");
+  let m;
+  if(cut(R("après[- ]demain")))date=addDays(k,2);
+  else if(cut(R("demain")))date=addDays(k,1);
+  else if(R("aujourd hui|ce soir|cet après-midi|ce matin").test(t)){date=k;cut(R("aujourd hui"))}
+  else{if(m=cut(R("(?:ce |cette )?(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)(?: prochain)?"))){const w=WDAY.indexOf(m[1].toLowerCase());date=addDays(k,(w-parse(k).getDay()+7)%7||7)}
+    if(m=cut(R("le (\\d{1,2})(?: (janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre))?"))){const MO=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],now=parse(k);const mo=m[2]?MO.indexOf(m[2].toLowerCase()):now.getMonth(),y=now.getFullYear();let d=new Date(y,mo,+m[1]);if(key(d)<k)d=m[2]?new Date(y+1,mo,+m[1]):new Date(y,mo+1,+m[1]);date=key(d)}}
+  if(m=cut(R("(?:(?:à|a|vers|pour|dès) )?(\\d{1,2}) ?(?:h|heures?|:) ?(\\d{2}|et demie|et quart|moins le quart)?"))){let h=+m[1];const x=(m[2]||"").toLowerCase(),mi=x==="et demie"?30:x==="et quart"?15:x==="moins le quart"?-15:+(x||0);if(h<8&&/après-midi|soir/i.test(t))h+=12;time=fromMin(h*60+mi)}
+  else if(m=cut(R("(?:à |a |vers )?midi(?: et demi)?"))){time=/demi/i.test(m[0])?"12:30":"12:00"}
+  if(time&&!date){const n=new Date();date=time>z(n.getHours())+":"+z(n.getMinutes())?k:addDays(k,1)}
+  cut(R("ce soir|cet après-midi|ce matin"));
+  const rdv=R("rdv|rendez-vous|rendez vous|réunion|déjeuner|dîner|diner|petit-déjeuner|visite|consultation|médecin|dentiste|notaire|avec").test(t);
+  if(rdv&&(m=/\s((?:chez|au|à la|à l |à|a)\s+[^,]+?)\s*$/iu.exec(t.replace(/\s+/g," ")))&&!/avec/i.test(m[1])){loc=m[1].replace(/^(à|a)\s+/i,"").trim();t=t.replace(m[1]," ")}
+  t=t.replace(R("mets[- ]moi|ajoute[- ]moi|ajoute|mets|programme|planifie|note|rappelle[- ]moi de|rappelle[- ]moi|il faut que je|je dois|tâche|tache|un|une"),"").replace(R("mets[- ]moi|ajoute[- ]moi|un|une"),"");
+  let title=t.replace(/\s+/g," ").trim().replace(/^(à|a|le|la|pour|de|d)\s+/i,"").replace(/\s+(à|a|le|la|pour|de|et)$/i,"").trim();
+  title=title.charAt(0).toUpperCase()+title.slice(1);loc=loc.charAt(0).toUpperCase()+loc.slice(1);
+  return title?[{kind:rdv?"rdv":"task",title,date,time,dur:rdv?60:30,loc}]:[];
+}
+let vcItems=[],vcText="",vcVia="";
+async function voiceStart(){
+  if(!Tools||!Tools.listen){toast("La dictée fonctionne dans l'appli Android");return}
+  let text="";try{text=((await Tools.listen({prompt:"Ex. « Rendez-vous demain 15 h avec Paul chez le notaire »"}))||{}).text||""}catch(e){if(!/cancel/.test(String(e&&e.message||e)))toast(String(e&&e.message||e));return}
+  if(!text.trim())return;await voiceHandle(text);
+}
+async function voiceHandle(text){
+  vcText=text;openModal(`<div class="mhead"><div><div class="day">🎙 Compris</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><div class="mut sm">${aiKey?"L'assistant analyse ta demande…":"Analyse…"}</div>`);
+  let items=[];vcVia="";
+  if(aiKey){try{items=await aiParse(text);vcVia="ai"}catch(e){aiState=String(e.message||e);toast("Assistant IA : "+aiState+" · analyse simple");items=localParse(text);vcVia="local"}}
+  else{items=localParse(text);vcVia="local"}
+  items=items.map(i=>({kind:i.kind==="rdv"?"rdv":"task",t:String(i.title||"").trim(),date:i.date||"",time:i.time||"",dur:+i.dur||(i.kind==="rdv"?60:30),loc:i.loc||""}));
+  if(!items.length){openModal(`<div class="mhead"><div><div class="day">🎙 Pas compris</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><button class="btn p" style="width:100%;padding:12px" data-do="voice">Réessayer</button>`);return}
+  if(items.length===1){const o=items[0];if(!o.date&&o.kind==="rdv")o.date=agDay||today();openModal(agSheet({...o,g:o.kind==="rdv"&&!!S.cal.gw,voice:text,via:vcVia}));return}
+  vcItems=items;openModal(vVoiceList());
+}
+function vVoiceList(){
+  return`<div class="mhead"><div><div class="day">🎙 ${vcItems.length} éléments</div><h2 class="disp" style="font-size:18px">« ${esc(vcText)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  ${vcItems.map((o,i)=>`<div class="act" style="cursor:default"><span>${o.kind==="rdv"?"📅":"✅"}</span><div class="lbl">${esc(o.t)}<div class="det">${o.date?fmt(o.date):"Sans date"}${o.time?" · "+o.time:""}${o.loc?" · "+esc(o.loc):""}</div></div><button class="tbtn" data-do="vcedit:${i}">Modifier</button></div>`).join("")}
+  ${vcItems.some(o=>o.kind==="rdv")?`<label class="sc" style="margin-top:10px"><input type="checkbox" id="vcG" ${S.cal.gw?"checked":""}><span><b>Rendez-vous aussi dans Google Agenda</b></span></label>`:""}
+  <button class="btn p" style="width:100%;padding:13px;margin-top:10px" data-do="vcall">Tout ajouter</button>`;
+}
+async function voiceAddAll(){
+  const g=!!(document.getElementById("vcG")||{}).checked;
+  for(const o of vcItems){if(o.kind==="task")S.todos.push({id:uid(),t:o.t,date:o.date,time:o.time,dur:o.dur,done:false});
+    else{const r={id:uid(),t:o.t,date:o.date||today(),time:o.time||"09:00",dur:o.dur,loc:o.loc};S.appts.push(r);if(g)await gUpsert(r)}}
+  closeModal();persist();render();toast(vcItems.length+" éléments ajoutés");vcItems=[];
+}
+function vAiCard(){
+  const u=S.ai||{},mo=today().slice(0,7),n=u.m===mo?u.n||0:0,cost=u.m===mo?(u.tok||0)*0.1/1e6:0;
+  return`<div class="card"><div class="disp" style="font-size:16px">🎙 Assistant vocal</div>
+  <div class="mut sm" style="margin:6px 0 8px">Appuie sur 🎙 dans l'agenda et dicte : « Rendez-vous demain 15 h avec Paul chez le notaire », « Tâche appeler la banque jeudi ». ${aiKey?"✓ L'IA Claude comprend tes phrases, même longues ou avec plusieurs éléments.":"Sans clé, une analyse simple fonctionne pour les phrases courtes. Ajoute ta clé Claude pour tout comprendre."}</div>
+  <label class="f">Clé API Claude ${aiKey?"(enregistrée sur ce téléphone)":""}</label>
+  <div class="row" style="gap:8px"><input id="aiK" type="password" autocomplete="off" placeholder="${aiKey?"•••• "+esc(aiKey.slice(-4)):"sk-ant-api03-…"}" style="flex:1;min-width:0"><button class="btn p" data-do="aikey">${aiKey?"Remplacer":"Enregistrer"}</button></div>
+  ${aiKey?`<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" data-do="aitest">Tester</button><button class="btn d" data-confirm="aidel">Retirer la clé</button></div>
+  <div class="mut sm" style="margin-top:8px">Ce mois-ci : ${n} commande${n>1?"s":""} · environ ${cost<0.01?"moins de 0,01":cost.toFixed(2).replace(".",",")} $${aiState?` · dernier souci : ${esc(aiState)}`:""}</div>`:""}
+  <div class="mut sm" style="margin-top:8px">La clé reste uniquement sur ce téléphone : elle n'est ni dans la sauvegarde ni dans la copie de tes données.</div></div>`;
+}
+
 /* ---------- agenda en grille horaire ---------- */
 const HPX=84;let agDay=null,agMode="grid",agCur={},agForm=null,suppressClick=0;
 const toMin=t=>{const[h,m]=(t||"0:0").split(":").map(Number);return(h||0)*60+(m||0)};
@@ -963,7 +1057,7 @@ function vGrid(k){
 }
 function vAgenda(){
   const k=agDay||today(),d=parse(k),lab=k===today()?"Aujourd'hui":k===addDays(today(),1)?"Demain":k===addDays(today(),-1)?"Hier":d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
-  return`<div class="top"><div><div class="day">Organisation</div><h1 class="big">Agenda</h1></div><button class="btn p" data-do="agadd">+ Ajouter</button></div>
+  return`<div class="top"><div><div class="day">Organisation</div><h1 class="big">Agenda</h1></div><div class="row" style="gap:8px"><button class="btn mic" data-do="voice" aria-label="Dicter">🎙</button><button class="btn p" data-do="agadd">+ Ajouter</button></div></div>
   <div class="seg"><button class="${agMode==="grid"?"on":""}" data-do="agmode:grid">Ma journée</button><button class="${agMode==="set"?"on":""}" data-do="agmode:set">Routines et réglages</button></div>
   ${agMode==="grid"?`<div class="agnav"><button class="btn" data-do="agday:-1">‹</button><div><b>${lab}</b><div class="mut sm">${d.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>${k!==today()?`<button class="tbtn" data-do="agday:0">Revenir à aujourd'hui</button>`:""}</div><button class="btn" data-do="agday:1">›</button></div>${vGrid(k)}`
   :`<div class="card"><div class="disp" style="font-size:16px">Agenda du téléphone</div>
@@ -977,6 +1071,7 @@ function agSheet(o){
   agForm=o;const dd=o.dur||(o.kind==="rdv"?60:30);
   return`<div class="mhead"><div><div class="day">${o.ref?"Modifier":"Ajouter"}</div><h2 class="disp" style="font-size:21px">${o.kind==="rdv"?"📅 Rendez-vous":"✅ Tâche"}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
   <div class="segs"><button class="${o.kind==="task"?"on":""}" data-do="agkind:task">✅ Tâche</button><button class="${o.kind==="rdv"?"on":""}" data-do="agkind:rdv">📅 Rendez-vous</button></div>
+  ${o.voice?`<div class="mut sm" style="margin:-2px 0 8px">🎙 « ${esc(o.voice)} »${o.via==="local"?" · analyse simple, vérifie les champs":" · compris par l'assistant"}</div>`:`<button class="btn" style="width:100%;margin-bottom:8px" data-do="voice">🎙 Dicter plutôt</button>`}
   <div class="mut sm" style="margin:-2px 0 6px">${o.kind==="task"?"Une chose à faire et à cocher. Sans heure, elle reste dans ta to-do.":"Un moment bloqué avec quelqu'un ou quelque part. Rien à cocher."}</div>
   <label class="f">Intitulé</label><input id="agT" value="${esc(o.t||"")}" placeholder="${o.kind==="rdv"?"Ex. Rendez-vous banque":"Ex. Appeler le notaire"}">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="f">Date</label><input type="date" id="agD" value="${o.date||""}"></div><div><label class="f">Heure</label><input type="time" id="agH" value="${o.time||""}"></div></div>
@@ -1592,6 +1687,7 @@ function vStats(){
     <label class="btn" style="cursor:pointer">Restaurer un fichier<input type="file" accept=".json,application/json,text/plain" data-restore="1" hidden></label></div>
     ${pendingRestore?`<div class="warn">Fichier lu : ${pendingRestore.goals.length} objectifs, ${Object.keys(pendingRestore.log||{}).length} jours d'historique. Tes données actuelles seront remplacées.<div class="row" style="gap:8px;margin-top:8px"><button class="btn p" data-confirm="restore">Remplacer mes données</button><button class="btn" data-do="norestore">Annuler</button></div></div>`:""}
     <div class="mut sm" style="margin-top:8px">Conseil : envoie de temps en temps ce fichier sur ton Google Drive ou par mail pour l'avoir hors du téléphone.</div></div>
+  ${vAiCard()}
   <div class="card"><div class="disp" style="font-size:16px">Rappels</div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><span>Rappels sur le téléphone</span><button class="btn ${S.notif.on?"p":""}" data-do="notifon">${S.notif.on?"Activés":"Désactivés"}</button></div>
     <div class="tgrid">${["matin","midi","aprem","soir"].map(s=>`<label>${SLOTS[s]}<input type="time" data-nt="${s}" value="${S.notif.times[s]}"></label>`).join("")}
@@ -1630,6 +1726,12 @@ function run(cmd){
   if(cmd.startsWith("agck:")){const it=agCur[cmd.slice(5)];closeModal();if(it)agCheck(it);return}
   const[c,id,x3]=cmd.split(":");const k=today();
   if(c==="agadd"){agOpen(null);return}
+  if(c==="voice"){closeModal();voiceStart();return}
+  if(c==="vcall"){voiceAddAll();return}
+  if(c==="vcedit"){const o=vcItems[+id];if(o){vcItems.splice(+id,1);openModal(agSheet({...o,date:o.date||(o.kind==="rdv"?today():""),g:o.kind==="rdv"&&!!S.cal.gw,voice:vcText,via:vcVia}))}return}
+  if(c==="aikey"){const v=(document.getElementById("aiK").value||"").trim();if(!/^sk-ant-/.test(v)){toast("Colle une clé qui commence par sk-ant-");return}aiSaveKey(v).then(()=>{aiState="";render();toast("Clé enregistrée sur ce téléphone")});return}
+  if(c==="aidel"){aiSaveKey("").then(()=>{render();toast("Clé retirée")});return}
+  if(c==="aitest"){toast("Test en cours…");aiParse("rendez-vous demain à 15 h avec Paul chez le notaire").then(it=>{aiState="";render();toast(it.length?"✓ Clé valide : "+it[0].title+" · "+(it[0].date?fmt(it[0].date):"")+" "+(it[0].time||""):"Réponse vide")},e=>{aiState=String(e.message||e);render();toast("Échec : "+aiState)});return}
   if(c==="agmode"){agMode=id;render();return}
   if(c==="agday"){agDay=+id===0?null:addDays(agDay||k,+id);if(agDay===k)agDay=null;render();return}
   if(c==="agkind"){agRead();agForm.kind=id;if(id==="rdv"&&(!agForm.dur||agForm.dur<60))agForm.dur=60;openModal(agSheet(agForm));return}
