@@ -64,6 +64,17 @@ input:focus,select:focus{outline:none;border-color:var(--acc)}
 label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
 .loading{display:grid;place-items:center;height:70vh;color:var(--mut)}
 .ob{min-height:80vh;display:flex;flex-direction:column}
+.intro{min-height:88vh;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;padding-top:4vh}
+.intro .ilogo{width:120px;height:120px;animation:ilogo 1.6s cubic-bezier(.6,0,.2,1) both}
+.intro .ilogo svg{width:100%;height:100%;filter:drop-shadow(0 0 22px rgba(201,162,39,.35))}
+@keyframes ilogo{0%{opacity:0;transform:translateY(32vh) scale(.6)}35%{opacity:1;transform:translateY(32vh) scale(1.25)}55%{transform:translateY(32vh) scale(1.25)}100%{transform:translateY(0) scale(1)}}
+.intro .iw{font-size:13px;letter-spacing:.3em;color:var(--acc2);font-weight:700;margin-top:18px;animation:ifade .8s 1.6s both}
+.intro h1{font-size:34px;line-height:1.1;margin-top:10px;animation:ifade .8s 1.9s both}
+.intro h1 span{background:linear-gradient(90deg,#f6dc8c,#c9a227);-webkit-background-clip:text;background-clip:text;color:transparent}
+.intro p{color:var(--mut);margin-top:16px;max-width:320px;font-size:16px;line-height:1.5;animation:ifade .8s 2.4s both}
+.intro .ib{margin-top:auto;width:100%;animation:ifade .8s 3s both}
+.intro .ib .btn{width:100%;padding:15px;font-size:16px}
+@keyframes ifade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .ob .prog{height:4px;background:var(--card2);border-radius:9px;margin:4px 0 26px;overflow:hidden}
 .ob .prog i{display:block;height:100%;background:var(--acc);transition:width .3s}
 .ob h2{font-size:26px;line-height:1.15;margin-bottom:8px}
@@ -156,6 +167,24 @@ nav button{max-width:130px}
 .chk{display:flex;gap:12px;flex-wrap:wrap}.chk label{display:flex;gap:5px;align-items:center;font-size:13px}.chk input{width:auto;accent-color:#c9a227}
 nav button{max-width:110px;font-size:11px}
 .calr{opacity:.75}.calr .lbl{padding:10px 4px;color:#cfc6b0}
+.calr.rdv{opacity:1}.calr.rdv .lbl{color:var(--acc2)}
+.agnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.agnav>div{text-align:center;text-transform:capitalize;flex:1;min-width:0}.agnav .tbtn{display:block;margin:4px auto 0}
+.grid{position:relative;margin:6px 0 10px 44px;border-left:1px solid var(--line)}
+.gh{position:absolute;left:-44px;right:0;border-top:1px solid #1e1b15;height:0}.gh span{position:absolute;left:0;top:-7px;font-size:10.5px;color:var(--mut);width:38px;text-align:right}
+.gnow{position:absolute;left:-4px;right:0;border-top:2px solid #e05a4a;z-index:3;pointer-events:none}.gnow:before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:#e05a4a}
+.gb{position:absolute;border-radius:9px;padding:4px 6px;display:flex;gap:6px;align-items:flex-start;overflow:hidden;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2;transition:box-shadow .15s,transform .15s;touch-action:pan-y}
+.gb.task{background:#16130d;border:1px solid #3a321f;border-left:3px solid var(--acc)}
+.gb.task.gcore{border-left-color:var(--acc2);background:#1d180c}
+.gb.rdv{background:linear-gradient(135deg,#d9b443,#8a6a14);color:#120e04;border:1px solid #ecd082}
+.gb.rdv small{color:#2b210a}
+.gb.done{opacity:.45}.gb.done b{text-decoration:line-through}
+.gb.drag{z-index:6;box-shadow:0 10px 26px rgba(0,0,0,.6),0 0 0 2px var(--acc2);transform:scale(1.03);transition:none;opacity:.95}
+.gtx{min-width:0;flex:1}.gtx b{display:block;font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gtx small{display:block;font-size:10.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gck{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--acc);margin-top:1px;box-sizing:border-box}
+.gb.done .gck{background:var(--acc)}
+.gic{flex:none;font-size:12px;margin-top:1px}
+.gb.one{align-items:center;padding-top:2px;padding-bottom:2px}.gb.one .gtx{display:flex;gap:6px;align-items:baseline}.gb.one .gtx b{flex:0 1 auto;min-width:0}.gb.one .gtx small{flex:1 1 0;min-width:0}.gb.one .gck{margin-top:0}
+.glegend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--mut);margin-bottom:14px}.glegend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}.lt{background:#16130d;border:1px solid var(--acc)}.lr{background:var(--acc)}
 .clash{font-size:12px;color:#f0b46a;padding:0 0 8px 60px;cursor:pointer}
 .dream{border:1px solid #3a321f;border-radius:16px;overflow:hidden;margin-bottom:12px;background:#0e0d0b}
 .dvis{position:relative;height:170px;background:radial-gradient(120% 90% at 85% 30%,#211b0f,#0b0a08)}
@@ -198,7 +227,14 @@ input,select,textarea{min-width:0;max-width:100%}
 <script src="lib/preferences.js"></script>
 <script src="lib/health.js"></script>
 <script>
-const GRADES=[["Recrue",0],["Soldat",300],["Sergent",800],["Lieutenant",1600],["Capitaine",3000],["Commandant",5000],["Général",8000],["Légende",12000]];
+const XP_STEPS=[0,300,800,1600,3000,5000,8000,12000];
+const UNIVERS={
+  ent:{n:"Entrepreneur",e:"💼",lab:"Statut",up:"💼 Nouveau statut",g:["Apprenti","Fondateur","Entrepreneur","Dirigeant","Président","Investisseur","Magnat","Légende"]},
+  grec:{n:"Dieux grecs",e:"⚡",lab:"Rang",up:"⚡ Ascension",g:["Mortel","Spartiate","Héros","Demi-dieu","Titan","Olympien","Immortel","Zeus"]},
+  mil:{n:"Militaire",e:"⚔️",lab:"Grade",up:"⚔️ Montée en grade",g:["Recrue","Soldat","Sergent","Lieutenant","Capitaine","Commandant","Général","Légende"]},
+  prin:{n:"Royal",e:"👑",lab:"Titre",up:"👑 Nouveau titre",g:["Demoiselle","Dame","Comtesse","Duchesse","Princesse","Reine","Impératrice","Déesse"]}};
+const univ=()=>UNIVERS[(S&&S.profile&&S.profile.univ)||"ent"]||UNIVERS.ent;
+const GRADES_OF=()=>univ().g.map((n,i)=>[n,XP_STEPS[i]]);
 const PHASES=["Fondation","Construction","Domination"];
 const FREQ={d:"Tous les jours","12345":"Lun → ven","135":"Lun · mer · ven","246":"Mar · jeu · sam","06":"Week-end","1":"1×/sem. (lundi)","3":"1×/sem. (mercredi)","0":"1×/sem. (dimanche)"};
 const SLOTS={matin:"🌅 Matin",midi:"☀️ Midi",aprem:"🌤 Après-midi",soir:"🌙 Soir","":"📌 Dans la journée"};
@@ -227,7 +263,7 @@ function migrate(s){
   s.contract=s.contract||{on:false};s.health=s.health||{on:false};
   s.modules=s.modules||{prog:true,body:true,wealth:true,dreams:true,todo:true,dates:true};s.todos=s.todos||[];
   s.wealth=s.wealth||{items:[],hist:[]};s.lock=s.lock||{mode:"off"};
-  s.dreams=s.dreams||[];s.cal=s.cal||{on:false};
+  s.dreams=s.dreams||[];s.cal=s.cal||{on:false};s.cal.kind=s.cal.kind||{};s.appts=s.appts||[];
   s.dayPlan=s.dayPlan||{};s.moves=s.moves||[];s.events=s.events||[];
   s.trophies=s.trophies||{};s.ritual=s.ritual||{};s.prio=s.prio||{};s.partner=s.partner||{};s.cycle=s.cycle||1;
   if(s.notif&&!s.notif.relance)s.notif.relance="20:00";s.journal=s.journal||{};s.reviews=s.reviews||{};
@@ -362,6 +398,7 @@ const STEPS=[
   {id:"name",q:"On commence. Comment tu t'appelles ?",type:"text",ph:"Ton prénom"},
   {id:"sex",q:"Tu es…",sub:"Pour adapter les visuels et les programmes physiques.",type:"single",opts:[["h","Un homme"],["f","Une femme"]]},
   {id:"modules",q:"Que veux-tu piloter avec Ascension ?",sub:"Coche uniquement ce qui t'intéresse. Le reste pourra être activé plus tard dans les réglages.",type:"multi",min:1,max:6,opts:MODS},
+  {id:"univ",when:A=>hasM(A,"prog"),q:"Quel univers te motive ?",sub:"Tes grades porteront ces noms au fil de ta progression. Modifiable à tout moment dans les réglages.",type:"single",opts:Object.entries(UNIVERS).map(([k,u])=>[k,u.e+" "+u.n,u.g[0]+" → "+u.g[3]+" → "+u.g[7]])},
   {id:"domains",when:A=>hasM(A,"prog"),q:"Quels domaines veux-tu transformer en 90 jours ?",sub:"Choisis ceux qui comptent vraiment.",type:"multi",min:1,max:5,opts:Object.entries(DOMAINS).map(([k,d])=>[k,d.emoji+" "+d.name])},
   {id:"presets",when:A=>hasM(A,"prog"),q:"Quel est ton objectif dans chaque domaine ?",sub:"Choisis-en un par domaine, puis précise ton chiffre si tu veux.",type:"presets"},
   {id:"level",when:A=>hasM(A,"prog"),q:"Où en es-tu aujourd'hui ?",sub:"Ça règle les répétitions et durées de départ. Elles montent ensuite à chaque phase.",type:"single",opts:[["low","Je pars de zéro","On commence léger pour tenir"],["mid","J'ai des bases mais je suis irrégulier","Rythme standard"],["high","Je suis déjà discipliné","On monte l'intensité"]]},
@@ -406,7 +443,16 @@ function buildPlan(A){
     extra.slice(0,3).forEach(([l,c])=>add(g.id,l,"",10,"d",c))}
   return{goals,actions};
 }
+function vIntro(){
+  const again=S.onboarded;
+  return`<div class="intro"><div class="ilogo"><svg viewBox="0 0 512 512"><polygon points="256,92 280,138 168,404 124,404" fill="url(#goldg)"/><polygon points="256,92 388,404 344,404 232,138" fill="url(#goldg)"/><polyline points="190,338 256,256 322,338" fill="none" stroke="url(#goldg)" stroke-width="24"/></svg></div>
+  <div class="iw">ASCENSION</div>
+  <h1 class="disp">${again?"On repart":"Bienvenue"}<br><span>au sommet.</span></h1>
+  <p>Nous allons définir ensemble comment atteindre tes objectifs. Quelques questions, deux minutes, et ton plan est prêt.</p>
+  <div class="ib"><button class="btn p" data-do="obintro">Commencer</button>${again?`<button class="btn" style="margin-top:8px" data-obnav="cancel">Annuler</button>`:""}</div></div>`;
+}
 function vOnboard(){
+  if(ob.i===0&&!ob.intro)return vIntro();
   const st=STEPS[ob.i],A=ob.a,act=STEPS.map((s,i)=>i).filter(stepOn),pct=Math.round(act.indexOf(ob.i)/(act.length-1)*100);
   let body="";
   if(st.type==="text")body=`<input id="obIn" value="${esc(A[st.id]||"")}" placeholder="${st.ph}" autocomplete="off">`;
@@ -448,7 +494,7 @@ function canNext(){const st=STEPS[ob.i],v=ob.a[st.id];
   if(st.type==="multi")return(v||[]).length>=st.min;if(st.type==="single")return!!v;if(st.id==="name")return!!(v&&v.trim());return true}
 function applyOnboarding(A){
   const M={};MODS.forEach(([m])=>M[m]=hasM(A,m));S.modules=M;
-  S.profile={...(S.profile||{}),name:A.name,sex:A.sex,why:A.why,level:A.level,time:A.time,wake:A.wake,obst:A.obst||[],domains:A.domains,answers:A};
+  S.profile={...(S.profile||{}),name:A.name,sex:A.sex,univ:A.univ||"ent",why:A.why,level:A.level,time:A.time,wake:A.wake,obst:A.obst||[],domains:A.domains,answers:A};
   if(M.prog){const p=buildPlan(A);S.goals=p.goals;S.actions=p.actions;S.startDate=A.start==="monday"?nextMonday():today();S.lastPhase=0;{const t=wakeToTime(A.wake);if(t)S.notif.times.matin=t}S.archive=null}
   else if(S.actions.length){S.archive={goals:S.goals,actions:S.actions};S.goals=[];S.actions=[]}
   if(M.body){const B=A.body||{},w=num(B.weight);S.body={...(S.body||{}),age:num(B.age)||(S.body&&S.body.age)||null,height:num(B.height)||(S.body&&S.body.height)||null,target:num(B.target)||(S.body&&S.body.target)||null,goal:B.goal||(S.body&&S.body.goal)||"",log:(S.body&&S.body.log)||[]};
@@ -509,7 +555,8 @@ function buildNotifs(){
       if(list.length)push(atTime(k,T[s]),`${SLOTS[s]} · ${list.length} promesse${list.length>1?"s":""}`,list.map(line).join("\n"),list.map(a=>a.id))});
     D.filter(a=>timeOf(a,k)).forEach(a=>push(atTime(k,timeOf(a,k)),"⏰ "+a.label,detailOf(a,k)||"C'est l'heure.",[a.id]));
     if(mod("dates"))evTasks(k).filter(e=>!L[e.key]).forEach(e=>push(atTime(k,e.time),e.e+" "+e.label,"Date importante · Ascension"));
-    if(mod("todo"))(S.todos||[]).filter(t=>!t.done&&t.date===k&&t.time).forEach(t=>push(atTime(k,t.time),"✅ "+t.t,"À faire · Ascension"));
+    (S.appts||[]).filter(r=>r.date===k&&r.time&&!r.gid).forEach(r=>push(new Date(atTime(k,r.time).getTime()-15*60000),"📅 Dans 15 min : "+r.t,(r.loc?r.loc+" · ":"")+r.time+" · Ascension"));
+    (S.todos||[]).filter(t=>!t.done&&t.date===k&&t.time).forEach(t=>push(atTime(k,t.time),"✅ "+t.t,"À faire · Ascension"));
     {const prevL=S.log[addDays(k,-1)]||{},prevDue=addDays(k,-1)>=S.startDate?due(addDays(k,-1)).filter(a=>a.core&&!prevL[a.id]&&dueOn(a,k)&&!L[a.id]):[];
      if(prevDue.length&&!S.jokers[addDays(k,-1)])push(atTime(k,"12:30"),"⚠️ Ne rate pas deux fois",prevDue.map(a=>"• "+a.label).join("\n")+"\nRaté hier : aujourd'hui, c'est non négociable.",prevDue.map(a=>a.id))}
     {const rc=due(k).filter(a=>a.core&&!L[a.id]);if(rc.length&&S.notif.relance&&!S.jokers[k])push(atTime(k,S.notif.relance),`⚠️ Il te reste ${rc.length} socle${rc.length>1?"s":""}`,rc.map(a=>"• "+a.label).join("\n")+"\nTiens ta série 🔥",rc.map(a=>a.id))}
@@ -808,9 +855,10 @@ function timeOf(a,k){const o=planOf(k)[a.id];if(o&&o.time)return o.time;return r
 const sortTime=(a,k)=>timeOf(a,k)||SLOT_T(a.slot)||"13:00";
 const period=t=>t<"12:00"?"matin":t<"14:00"?"midi":t<"18:00"?"aprem":"soir";
 const addMin=(t,m)=>{let[h,mi]=(t||"12:00").split(":").map(Number);let x=Math.max(0,Math.min(23*60+59,h*60+mi+m));return z(Math.floor(x/60))+":"+z(x%60)};
-function moveSheet(aid,k){
-  const a=S.actions.find(x=>x.id===aid);if(!a)return;const t=sortTime(a,k),w=parse(k).getDay();
-  openModal(`<div class="mhead"><div><div class="day">Décaler</div><h2 class="disp" style="font-size:21px">${esc(a.label)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+let mvDay=null;
+function moveSheet(aid,k,preT){
+  const a=S.actions.find(x=>x.id===aid);if(!a)return;mvDay=k;const t=preT||sortTime(a,k),w=parse(k).getDay();
+  openModal(`<div class="mhead"><div><div class="day">Décaler${k!==today()?" · "+fmt(k):""}</div><h2 class="disp" style="font-size:21px">${esc(a.label)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
   <label class="f">Nouvelle heure</label><input type="time" id="mvT" value="${t}">
   <div class="row" style="gap:8px;margin-top:8px"><button class="btn" data-do="mvadd:-30">−30 min</button><button class="btn" data-do="mvadd:30">+30 min</button><button class="btn" data-do="mvadd:60">+1 h</button></div>
   <div class="card" style="margin-top:14px"><b>Ce changement est…</b>
@@ -872,14 +920,169 @@ function vEvents(){
    <button class="btn p" style="width:100%;margin-top:10px" data-do="evadd">Ajouter</button></div>`;
 }
 let evType="anniv";
-function vAgenda(){
-  return`<div class="top"><div><div class="day">Organisation</div><h1 class="big">Agenda</h1></div></div>
-  <div class="card"><div class="disp" style="font-size:16px">Agenda du téléphone</div>
-   ${S.cal&&S.cal.on&&calState!=="denied"?`<div class="mut sm" style="margin:6px 0">✓ Connecté. Tes rendez-vous (Google Agenda compris) s'affichent dans ta journée et les promesses qui tombent pendant un rendez-vous sont signalées.</div><div class="row" style="gap:8px"><button class="btn" data-do="calrefresh">Actualiser</button><button class="btn" data-do="caloff">Déconnecter</button></div>`
-   :`<div class="mut sm" style="margin:6px 0 10px">Affiche tes rendez-vous dans ta journée et repère les conflits. Lecture seule : Ascension ne modifie jamais ton agenda.</div><button class="btn p" data-do="calon">Connecter mon agenda</button>`}</div>
-  ${mod("prog")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Mes journées types</div>${vTypes()}</div>`:""}
-  ${mod("dates")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Dates importantes</div>${vEvents()}</div>`:""}`;
+/* ---------- agenda en grille horaire ---------- */
+const HPX=84;let agDay=null,agMode="grid",agCur={},agForm=null,suppressClick=0;
+const toMin=t=>{const[h,m]=(t||"0:0").split(":").map(Number);return(h||0)*60+(m||0)};
+const fromMin=m=>{m=Math.max(0,Math.min(1439,Math.round(m)));return z(Math.floor(m/60))+":"+z(m%60)};
+const durLab=m=>m<60?m+" min":Math.floor(m/60)+" h"+(m%60?" "+z(m%60):"");
+function agItems(k){
+  const L=S.log[k]||{},out=[],P=planOf(k);
+  if(S.actions.length&&k>=S.startDate&&diff(S.startDate,k)<S.length)due(k).forEach(a=>{const g=S.goals.find(x=>x.id===a.goalId),du=Math.round((durOf(a,k)||0)/60);
+    out.push({id:"a:"+a.id,kind:"task",src:"act",ref:a.id,auto:!timeOf(a,k),t:sortTime(a,k),dur:Math.max(30,du||30),title:(g?g.emoji+" ":"")+a.label,sub:(a.core?"Socle · ":"")+detailOf(a,k),core:a.core,done:!!L[a.id],moved:!!(P[a.id]&&(P[a.id].time||P[a.id].add)),drag:true})});
+  if(mod("dates"))evTasks(k).forEach(e=>out.push({id:"e:"+e.key,kind:"task",src:"evt",ref:e.key,t:e.time,dur:30,title:e.e+" "+e.label,sub:"Date importante",done:!!L[e.key]}));
+  (S.todos||[]).filter(t=>t.time&&(t.date===k||(t.done&&t.doneAt===k&&!t.date))).forEach(t=>out.push({id:"t:"+t.id,kind:"task",src:"todo",ref:t.id,t:t.time,dur:t.dur||30,title:t.t,sub:"Tâche",done:!!t.done,drag:true}));
+  (S.appts||[]).filter(r=>r.date===k).forEach(r=>out.push({id:"r:"+r.id,kind:"rdv",src:"appt",ref:r.id,t:r.time,dur:r.dur||60,title:r.t,sub:(r.loc?r.loc+" · ":"")+(r.gid?"Ascension + Google":"Ascension"),drag:true}));
+  calOf(k).filter(c=>!c.allDay).forEach(c=>{const isT=S.cal.kind[c.id]==="task";
+    out.push({id:"g:"+c.id+":"+c.b,kind:isT?"task":"rdv",src:"gcal",ref:c.id,t:hm(c.b),dur:Math.max(15,Math.round((c.e-c.b)/60000)),title:c.title,sub:(c.loc?c.loc+" · ":"")+"Google Agenda",done:isT&&!!L["gc:"+c.id],rec:c.rec,drag:!c.rec&&!c.split&&c.id!=null,cal:c})});
+  out.sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:((b.core?1:0)-(a.core?1:0))||(b.dur-a.dur));
+  // promesses sans heure précise : enchaînées à la suite à partir de l'heure du créneau
+  out.forEach(i=>{if(!i.auto)return;const m=/(?:Debout|Au lit|Lever|Coucher)[^0-9]*(\d{1,2})\s*h\s*(\d{2})?/i.exec(i.title);if(m){i.t=z(+m[1])+":"+(m[2]||"00");i.auto=false;i.approx=true}});
+  out.sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:(a.dur-b.dur));
+  let cur=-1;out.filter(i=>i.auto).forEach(i=>{const s0=toMin(i.t),st=Math.max(s0,cur);i.t=fromMin(st);i.approx=true;cur=st+i.dur});
+  return out.sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:(b.dur-a.dur));
 }
+function layLanes(items){
+  let grp=[],end=-1;const fl=g=>{const cols=[];g.forEach(it=>{const s=toMin(it.t);let c=cols.findIndex(e=>e<=s);if(c<0){c=cols.length;cols.push(0)}cols[c]=s+it.dur;it.col=c});g.forEach(it=>it.ncol=cols.length)};
+  items.forEach(it=>{const s=toMin(it.t);if(grp.length&&s>=end){fl(grp);grp=[];end=-1}grp.push(it);end=Math.max(end,s+it.dur)});if(grp.length)fl(grp);
+}
+function vGrid(k){
+  const items=agItems(k);layLanes(items);agCur={};items.forEach(it=>agCur[it.id]=it);
+  let h0=7,h1=22;items.forEach(it=>{const s=toMin(it.t);h0=Math.min(h0,Math.floor(s/60));h1=Math.max(h1,Math.ceil((s+it.dur)/60))});h1=Math.min(24,Math.max(h1,h0+1));
+  const top=m=>(m-h0*60)/60*HPX,now=new Date(),nm=now.getHours()*60+now.getMinutes();
+  let hrs="";for(let h=h0;h<h1;h++)hrs+=`<div class="gh" style="top:${(h-h0)*HPX}px"><span>${z(h)}:00</span></div>`;
+  const ad=calOf(k).filter(c=>c.allDay);
+  const blocks=items.map(it=>{const s=toMin(it.t),w=100/it.ncol,hh=Math.max(26,it.dur/60*HPX-3);
+    return`<div class="gb ${it.kind} ${it.done?"done":""} ${it.core?"gcore":""} ${hh<46?"one":""}" data-gb="${esc(it.id)}" style="top:${top(s)}px;height:${hh}px;left:calc(${it.col*w}% + 2px);width:calc(${w}% - 4px)">
+    ${it.kind==="task"?`<span class="gck" data-gck="${esc(it.id)}"></span>`:`<span class="gic">📅</span>`}
+    <div class="gtx"><b>${esc(it.title)}</b><small>${it.approx?"≈ ":""}${it.t}${it.kind==="rdv"?"–"+fromMin(s+it.dur):""}${it.moved?" *":""}${it.sub?" · "+esc(it.sub):""}</small></div></div>`}).join("");
+  return`${ad.length?`<div class="mut sm" style="margin-bottom:8px">📅 Toute la journée : ${ad.map(c=>esc(c.title)).join(" · ")}</div>`:""}
+  ${!items.length?`<div class="mut sm" style="margin-bottom:8px">Rien de prévu ce jour-là. Appuie sur « + Ajouter ».</div>`:""}
+  <div class="grid" id="agGrid" style="height:${(h1-h0)*HPX}px">${hrs}${k===today()&&nm>=h0*60&&nm<h1*60?`<div class="gnow" style="top:${top(nm)}px"></div>`:""}${blocks}</div>
+  <div class="glegend"><span><i class="lt"></i>Tâche (à cocher)</span><span><i class="lr"></i>Rendez-vous</span><span>≈ heure indicative (promesse sans heure fixe)</span><span>✋ Appui long puis glisse pour déplacer</span></div>
+  ${!(S.cal&&S.cal.on)?`<div class="card banner" data-do="calon"><b>📅 Voir aussi tes rendez-vous Google</b><div class="mut sm">Connecte l'agenda du téléphone pour les afficher dans cette grille.</div></div>`:""}`;
+}
+function vAgenda(){
+  const k=agDay||today(),d=parse(k),lab=k===today()?"Aujourd'hui":k===addDays(today(),1)?"Demain":k===addDays(today(),-1)?"Hier":d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+  return`<div class="top"><div><div class="day">Organisation</div><h1 class="big">Agenda</h1></div><button class="btn p" data-do="agadd">+ Ajouter</button></div>
+  <div class="seg"><button class="${agMode==="grid"?"on":""}" data-do="agmode:grid">Ma journée</button><button class="${agMode==="set"?"on":""}" data-do="agmode:set">Routines et réglages</button></div>
+  ${agMode==="grid"?`<div class="agnav"><button class="btn" data-do="agday:-1">‹</button><div><b>${lab}</b><div class="mut sm">${d.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>${k!==today()?`<button class="tbtn" data-do="agday:0">Revenir à aujourd'hui</button>`:""}</div><button class="btn" data-do="agday:1">›</button></div>${vGrid(k)}`
+  :`<div class="card"><div class="disp" style="font-size:16px">Agenda du téléphone</div>
+   ${S.cal&&S.cal.on&&calState!=="denied"?`<div class="mut sm" style="margin:6px 0">✓ Connecté. Tes rendez-vous (Google Agenda compris) s'affichent dans ta journée et les promesses qui tombent pendant un rendez-vous sont signalées.</div><div class="row" style="gap:8px"><button class="btn" data-do="calrefresh">Actualiser</button><button class="btn" data-do="caloff">Déconnecter</button></div>`
+   :`<div class="mut sm" style="margin:6px 0 10px">Affiche tes rendez-vous dans ta journée et repère les conflits.</div><button class="btn p" data-do="calon">Connecter mon agenda</button>`}
+   <div class="modr" style="margin-top:12px"><div><b>Écrire dans Google Agenda</b><div class="mut sm">${S.cal.gw?"Les rendez-vous créés dans Ascension (case cochée) s'ajoutent à ton agenda Google, et les déplacer ici les déplace là-bas.":"Autorise Ascension à ajouter tes rendez-vous dans ton agenda Google et à déplacer ceux que tu glisses dans la grille."}</div></div><button class="btn ${S.cal.gw?"p":""}" data-do="gwt">${S.cal.gw?"Activé":"Autoriser"}</button></div></div>
+  ${mod("prog")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Mes journées types</div>${vTypes()}</div>`:""}
+  ${mod("dates")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Dates importantes</div>${vEvents()}</div>`:""}`}`;
+}
+function agSheet(o){
+  agForm=o;const dd=o.dur||(o.kind==="rdv"?60:30);
+  return`<div class="mhead"><div><div class="day">${o.ref?"Modifier":"Ajouter"}</div><h2 class="disp" style="font-size:21px">${o.kind==="rdv"?"📅 Rendez-vous":"✅ Tâche"}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <div class="segs"><button class="${o.kind==="task"?"on":""}" data-do="agkind:task">✅ Tâche</button><button class="${o.kind==="rdv"?"on":""}" data-do="agkind:rdv">📅 Rendez-vous</button></div>
+  <div class="mut sm" style="margin:-2px 0 6px">${o.kind==="task"?"Une chose à faire et à cocher. Sans heure, elle reste dans ta to-do.":"Un moment bloqué avec quelqu'un ou quelque part. Rien à cocher."}</div>
+  <label class="f">Intitulé</label><input id="agT" value="${esc(o.t||"")}" placeholder="${o.kind==="rdv"?"Ex. Rendez-vous banque":"Ex. Appeler le notaire"}">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="f">Date</label><input type="date" id="agD" value="${o.date||""}"></div><div><label class="f">Heure</label><input type="time" id="agH" value="${o.time||""}"></div></div>
+  <label class="f">Durée</label><select id="agU">${[15,30,45,60,90,120,180,240].map(m=>`<option value="${m}" ${dd===m?"selected":""}>${durLab(m)}</option>`).join("")}</select>
+  ${o.kind==="rdv"?`<label class="f">Lieu (facultatif)</label><input id="agL" value="${esc(o.loc||"")}" placeholder="Ex. Agence de Rennes">
+   <label class="sc" style="margin-top:10px"><input type="checkbox" id="agG" ${o.g?"checked":""}><span><b>Aussi dans mon agenda Google</b><em>${o.gid?"Synchronisé : les changements suivent":"Visible sur tous tes appareils, avec les rappels Google"}</em></span></label>`:""}
+  <button class="btn p" style="width:100%;padding:13px;margin-top:12px" data-do="agsave">${o.ref?"Enregistrer":"Ajouter"}</button>
+  ${o.ref?`<button class="btn d" style="width:100%;margin-top:8px" data-confirm="agdel">Supprimer${o.gid?" (aussi dans Google)":""}</button>`:""}`;
+}
+const fv=id=>{const e=document.getElementById(id);return e?e.value:""};
+function agRead(){const o=agForm;if(!o||!document.getElementById("agT"))return o;o.t=fv("agT");o.date=fv("agD");o.time=fv("agH");o.dur=+fv("agU")||o.dur;if(document.getElementById("agL"))o.loc=fv("agL");const g=document.getElementById("agG");if(g)o.g=g.checked;return o}
+function agOpen(it){
+  const k=agDay||today();
+  if(!it){openModal(agSheet({kind:"task",date:k,time:"",dur:30,g:!!S.cal.gw}));return}
+  if(it.src==="todo"){const t=S.todos.find(x=>x.id===it.ref);if(t)openModal(agSheet({kind:"task",src:"todo",ref:t.id,t:t.t,date:t.date||k,time:t.time,dur:t.dur||30,g:!!S.cal.gw}));return}
+  if(it.src==="appt"){const r=S.appts.find(x=>x.id===it.ref);if(r)openModal(agSheet({kind:"rdv",src:"appt",ref:r.id,t:r.t,date:r.date,time:r.time,dur:r.dur,loc:r.loc,g:!!r.gid,gid:r.gid}));return}
+  if(it.src==="act"){const a=S.actions.find(x=>x.id===it.ref);if(!a)return;const L=S.log[k]||{};
+    openModal(`<div class="mhead"><div><div class="day">Promesse${a.core?" · socle ⭐":""}</div><h2 class="disp" style="font-size:20px">${esc(a.label)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+    <div class="mut sm" style="margin-bottom:12px">${it.t}${detailOf(a,k)?" · "+esc(detailOf(a,k)):""}</div>
+    ${k===today()?`<button class="btn p" style="width:100%;padding:13px" data-do="agck:${esc(it.id)}">${L[a.id]?"Décocher":"✓ C'est fait"}</button>`:""}
+    <button class="btn" style="width:100%;margin-top:8px" data-do="agmv:${a.id}">🕐 Changer l'heure</button>
+    <div class="mut sm" style="margin-top:10px">Astuce : dans la grille, garde le doigt appuyé sur la promesse puis glisse-la.</div>`);return}
+  if(it.src==="gcal"){const c=it.cal,isT=it.kind==="task";
+    openModal(`<div class="mhead"><div><div class="day">Google Agenda</div><h2 class="disp" style="font-size:20px">${esc(c.title)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+    <div class="mut sm" style="margin-bottom:12px">${hm(c.b)}–${hm(c.e)}${c.loc?" · "+esc(c.loc):""}${c.rec?" · récurrent":""}</div>
+    <label class="f">Dans Ascension, c'est…</label><div class="segs"><button class="${isT?"":"on"}" data-do="gkind:${c.id}:rdv">📅 Un rendez-vous</button><button class="${isT?"on":""}" data-do="gkind:${c.id}:task">✅ Une tâche à cocher</button></div>
+    ${isT&&k===today()?`<button class="btn p" style="width:100%;padding:12px" data-do="agck:${esc(it.id)}">${it.done?"Décocher":"✓ C'est fait"}</button>`:""}
+    <div class="mut sm" style="margin-top:10px">${c.rec?"Événement récurrent : son horaire se change dans Google Agenda.":"Pour le déplacer : appui long dans la grille puis glisse. Le changement est écrit dans Google Agenda."}</div>`);return}
+  if(it.src==="evt")agCheck(it);
+}
+function agCheck(it){
+  const k=agDay||today();if(k!==today()){toast("Ça se coche le jour même");return}
+  const L=S.log[k]||(S.log[k]={});
+  if(it.src==="act"){toggle(it.ref);return}
+  if(it.src==="todo"){todoToggle(it.ref);return}
+  const kk=it.src==="evt"?it.ref:"gc:"+it.ref;if(L[kk])delete L[kk];else{L[kk]={x:10,g:null};toast("✓ C'est fait")}if(!Object.keys(L).length)delete S.log[k];persist();render();
+}
+function todoToggle(id){const t=(S.todos||[]).find(x=>x.id===id);if(!t)return;const k=today(),L=S.log[k]||(S.log[k]={});t.done=!t.done;t.doneAt=t.done?k:null;
+  if(t.done){L["td:"+t.id]={x:5,g:null};toast("✓ Fait")}else delete L["td:"+t.id];if(!Object.keys(L).length)delete S.log[k];persist();checkTrophies();render()}
+async function agSave(){
+  const o=agRead(),t=(o.t||"").trim();if(!t){toast("Indique un intitulé");return}
+  const date=o.date||agDay||today(),time=o.time||"",dur=o.dur||(o.kind==="rdv"?60:30),loc=(o.loc||"").trim();
+  if(o.kind==="rdv"&&!time){toast("Un rendez-vous a besoin d'une heure");return}
+  let oldGid=null;
+  if(o.ref&&o.src==="todo"&&o.kind!=="task")S.todos=S.todos.filter(x=>x.id!==o.ref);
+  if(o.ref&&o.src==="appt"&&o.kind!=="rdv"){const r=S.appts.find(x=>x.id===o.ref);oldGid=r&&r.gid;S.appts=S.appts.filter(x=>x.id!==o.ref)}
+  if(o.kind==="task"){let x=o.ref&&o.src==="todo"?S.todos.find(y=>y.id===o.ref):null;if(!x){x={id:uid(),done:false};S.todos.push(x)}Object.assign(x,{t,date:date,time,dur});if(oldGid)gDelete(oldGid)}
+  else{let r=o.ref&&o.src==="appt"?S.appts.find(y=>y.id===o.ref):null;if(!r){r={id:uid()};S.appts.push(r)}Object.assign(r,{t,date,time,dur,loc});
+    if(o.g)await gUpsert(r);else if(r.gid){gDelete(r.gid);r.gid=null}}
+  if(time)agDay=date;closeModal();persist();render();toast(o.ref?"Modifié":o.kind==="rdv"?"Rendez-vous ajouté":"Tâche ajoutée");
+}
+function agDelete(){const o=agForm;if(!o||!o.ref)return;
+  if(o.src==="todo")S.todos=S.todos.filter(x=>x.id!==o.ref);
+  if(o.src==="appt"){const r=S.appts.find(x=>x.id===o.ref);if(r&&r.gid)gDelete(r.gid);S.appts=S.appts.filter(x=>x.id!==o.ref)}
+  closeModal();persist();render();toast("Supprimé");
+}
+async function gWriteOk(){
+  if(!Tools||!Tools.calWriteState){toast("L'écriture dans Google fonctionne dans l'appli Android");return false}
+  try{let st=(await Tools.calWriteState()).state;if(st!=="granted")st=(await Tools.requestCalWrite()).state;
+    if(st==="granted"){if(!S.cal.gw){S.cal.gw=true;persist()}return true}
+    toast("Autorise l'agenda : Paramètres Android → Applis → Ascension → Autorisations");return false}catch(e){toast(String(e&&e.message||e));return false}
+}
+async function gUpsert(r){
+  if(!await gWriteOk())return;const b=atTime(r.date,r.time).getTime(),e=b+(r.dur||60)*60000;
+  try{if(r.gid){const u=await Tools.updateEvent({id:r.gid,title:r.t,begin:b,end:e,location:r.loc||""});if(u&&u.updated){calReload();return}}
+    const c=await Tools.createEvent({title:r.t,begin:b,end:e,location:r.loc||""});r.gid=c.id;persist();calReload()}catch(x){toast("Google Agenda : "+(x&&x.message||x))}
+}
+function gDelete(id){if(Tools&&Tools.deleteEvent&&id)Tools.deleteEvent({id}).then(calReload).catch(()=>{})}
+function calReload(){if(S.cal&&S.cal.on)loadCalendar(true)}
+async function gMove(it,nt){
+  if(!await gWriteOk()){render();return}const c=it.cal,b=atTime(agDay||today(),nt).getTime();
+  try{await Tools.updateEvent({id:c.id,begin:b,end:b+(c.e-c.b)});toast("Déplacé à "+nt+" dans Google Agenda");await loadCalendar(true)}catch(x){toast("Google Agenda : "+(x&&x.message||x))}render();
+}
+function dropTo(it,nt){
+  const k=agDay||today();
+  if(it.src==="act"){moveSheet(it.ref,k,nt);return}
+  if(it.src==="todo"){const t=S.todos.find(x=>x.id===it.ref);if(t){t.time=nt;if(!t.date)t.date=k}persist();render();toast("Tâche déplacée à "+nt);return}
+  if(it.src==="appt"){const r=S.appts.find(x=>x.id===it.ref);if(r){r.time=nt;persist();render();toast("Rendez-vous déplacé à "+nt);if(r.gid)gUpsert(r)}return}
+  if(it.src==="gcal")gMove(it,nt);
+}
+/* appui long + glisser dans la grille */
+let lp=null;
+function lpStart(b,y,target){
+  if(target.closest("[data-gck]"))return;const it=agCur[b.dataset.gb];if(!it)return;
+  lp={b,it,y0:y,on:false,top0:parseFloat(b.style.top),tm:setTimeout(()=>{if(!lp)return;
+    if(!it.drag){toast(it.rec?"Événement récurrent : change-le dans Google Agenda":"Cet élément ne se déplace pas");lp=null;suppressClick=Date.now();return}
+    lp.on=true;b.classList.add("drag");try{navigator.vibrate&&navigator.vibrate(25)}catch(e){}},430)};
+}
+function lpMove(y,ev){
+  if(!lp)return;if(!lp.on){if(Math.abs(y-lp.y0)>9){clearTimeout(lp.tm);lp=null}return}
+  ev&&ev.cancelable&&ev.preventDefault();
+  const dm=Math.round((y-lp.y0)/HPX*60/15)*15,nt=fromMin(toMin(lp.it.t)+dm);lp.nt=nt;
+  lp.b.style.top=(lp.top0+(toMin(nt)-toMin(lp.it.t))/60*HPX)+"px";const s=lp.b.querySelector("small");if(s)s.textContent="→ "+nt+(lp.it.kind==="rdv"?"–"+fromMin(toMin(nt)+lp.it.dur):"");
+  const cy=y-scrollY;if(cy<80)scrollBy(0,-10);else if(cy>innerHeight-120)scrollBy(0,10);
+}
+function lpEnd(){
+  if(!lp)return;clearTimeout(lp.tm);const L=lp;lp=null;if(!L.on)return;L.b.classList.remove("drag");suppressClick=Date.now();
+  if(!L.nt||L.nt===L.it.t){render();return}dropTo(L.it,L.nt);
+}
+document.addEventListener("touchstart",e=>{const b=e.target.closest("[data-gb]");if(b)lpStart(b,e.touches[0].pageY,e.target)},{passive:true});
+document.addEventListener("touchmove",e=>{if(lp)lpMove(e.touches[0].pageY,e)},{passive:false});
+document.addEventListener("touchend",lpEnd);document.addEventListener("touchcancel",lpEnd);
+document.addEventListener("contextmenu",e=>{if(e.target.closest("[data-gb]"))e.preventDefault()});
+document.addEventListener("mousedown",e=>{const b=e.target.closest("[data-gb]");if(b)lpStart(b,e.pageY,e.target)});
+document.addEventListener("mousemove",e=>{if(lp)lpMove(e.pageY,e)});
+document.addEventListener("mouseup",lpEnd);
 
 /* ---------- agenda du téléphone (Google Agenda synchronisé) ---------- */
 let calCache={},calAt=0,calState="?";
@@ -888,16 +1091,16 @@ async function loadCalendar(force){
   if(!Tools||!S||!S.cal||!S.cal.on)return;if(!force&&Date.now()-calAt<10*60e3)return;calAt=Date.now();
   try{const st=await Tools.calendarState();calState=st.state;if(st.state!=="granted")return;
     const s0=parse(today()).getTime(),r=await Tools.calendarEvents({start:s0,end:s0+14*864e5});calCache={};
-    (r.events||[]).forEach(e=>{if(e.allDay){const k=key(new Date(e.begin+12*3600e3));(calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",allDay:true});return}
+    (r.events||[]).forEach(e=>{if(e.allDay){const k=key(new Date(e.begin+12*3600e3));(calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",allDay:true,id:e.id});return}
       for(let d=new Date(e.begin);d.getTime()<e.end;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const k=key(d),dayEnd=parse(k).getTime()+864e5;
-        (calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",b:Math.max(e.begin,parse(k).getTime()),e:Math.min(e.end,dayEnd),loc:e.location||""})}});
+        (calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",b:Math.max(e.begin,parse(k).getTime()),e:Math.min(e.end,dayEnd),loc:e.location||"",id:e.id,rec:!!e.recurring,split:e.begin<parse(k).getTime()||e.end>dayEnd})}});
     if(!ob&&(tab==="today"||tab==="agenda"))render()}catch(e){}
 }
-const calOf=k=>(calCache[k]||[]);
+const calOf=k=>{const g=new Set((S&&S.appts||[]).map(r=>String(r.gid||"")).filter(Boolean));return(calCache[k]||[]).filter(c=>!g.has(String(c.id)))};
 function clashOf(a,k){const t=sortTime(a,k),ms=atTime(k,t).getTime();return calOf(k).find(e=>!e.allDay&&e.b<=ms&&ms<e.e)||null}
 async function connectCalendar(){
   if(!Tools){toast("Disponible dans l'appli Android");return}
-  try{const r=await Tools.requestCalendar();calState=r.state;if(r.state==="granted"){S.cal={on:true};persist();await loadCalendar(true);toast("Agenda connecté")}else toast("Accès refusé : Paramètres Android → Applis → Ascension → Autorisations → Agenda")}catch(e){toast(String(e&&e.message||e))}
+  try{const r=await Tools.requestCalendar();calState=r.state;if(r.state==="granted"){S.cal.on=true;persist();await loadCalendar(true);toast("Agenda connecté")}else toast("Accès refusé : Paramètres Android → Applis → Ascension → Autorisations → Agenda")}catch(e){toast(String(e&&e.message||e))}
   render();
 }
 
@@ -1054,7 +1257,7 @@ function vTodaySimple(k){
   if(mod("dates")){const u=upcoming(14);if(u.length)h+=`<div class="card banner" data-tabgo="agenda"><b>📅 À venir</b>${u.slice(0,3).map(x=>{const dd=diff(today(),x.o);return`<div class="mut sm">${(EVT[x.ev.type]||EVT.rdv).e} ${esc(x.ev.name)} · ${dd===0?"aujourd'hui":dd===1?"demain":"dans "+dd+" jours"}</div>`}).join("")}</div>`;
     const et=evTasks(k);if(et.length)h+=`<div class="card"><b>🎁 Aujourd'hui</b>${et.map(e=>`<div class="act ${(S.log[k]||{})[e.key]?"done":""}" data-evt="${e.key}"><div class="ck"></div><div class="lbl">${e.e} ${esc(e.label)}</div></div>`).join("")}</div>`}
   if(mod("wealth")&&wealthDue()&&new Date().getDate()<=10)h+=`<div class="card banner" data-do="vtab:wealth"><b>💰 Relevé de patrimoine du mois</b><div class="mut sm">2 minutes pour mettre tes montants à jour</div></div>`;
-  const cal=calOf(k);if(cal.length)h+=`<div class="card"><b>📅 Ton agenda</b>${cal.map(c=>`<div class="rv"><span>${esc(c.title)}</span><span class="mut sm">${c.allDay?"journée":hm(c.b)+"–"+hm(c.e)}</span></div>`).join("")}</div>`;
+  const cal=calOf(k).concat((S.appts||[]).filter(r=>r.date===k).map(r=>({title:r.t,b:atTime(k,r.time).getTime(),e:atTime(k,r.time).getTime()+(r.dur||60)*60000}))).sort((a,b)=>(a.b||0)-(b.b||0));if(cal.length)h+=`<div class="card"><b>📅 Ton agenda</b>${cal.map(c=>`<div class="rv"><span>${esc(c.title)}</span><span class="mut sm">${c.allDay?"journée":hm(c.b)+"–"+hm(c.e)}</span></div>`).join("")}</div>`;
   if(mod("todo"))h+=vTodo(k);
   if(mod("body"))h+=vBody();
   if(!mod("todo")&&!mod("body")&&!mod("dates")&&!cal.length)h+=`<div class="card empty mut">Active des modules dans Progression → Réglages → Modules.</div>`;
@@ -1187,7 +1390,7 @@ function vTour(){const T=tourSlides(),[ic,t,d]=T[tourI],last=tourI===T.length-1;
 const entries=()=>Object.values(S.log).flatMap(d=>Object.values(d));
 const totalXP=()=>entries().reduce((a,e)=>a+e.x,0);
 const goalXP=g=>entries().filter(e=>e.g===g).reduce((a,e)=>a+e.x,0);
-function gradeOf(xp){let i=0;GRADES.forEach((g,j)=>{if(xp>=g[1])i=j});const nx=GRADES[i+1];return{i,name:GRADES[i][0],cur:GRADES[i][1],next:nx?nx[1]:null,nextName:nx?nx[0]:null}}
+function gradeOf(xp){const GRADES=GRADES_OF();let i=0;GRADES.forEach((g,j)=>{if(xp>=g[1])i=j});const nx=GRADES[i+1];return{i,name:GRADES[i][0],cur:GRADES[i][1],next:nx?nx[1]:null,nextName:nx?nx[0]:null}}
 const lvl=xp=>Math.floor(Math.sqrt(xp/40))+1;
 const phaseOf=k=>{const i=diff(S.startDate,k);return i<0?0:Math.min(2,Math.floor(i*3/S.length))};
 const phaseStart=p=>addDays(S.startDate,Math.ceil(p*S.length/3));
@@ -1216,7 +1419,7 @@ function toggle(aid){
   if(!Object.keys(L).length)delete S.log[k];
   persist();
   const g=gradeOf(totalXP());
-  if(g.i>before)toast("⚔️ Montée en grade : "+g.name);
+  if(g.i>before)toast(univ().up+" : "+g.name);
   else if(!wasValid&&valid(k))toast(S.jokers[k]?"Jour minimum tenu. La série continue. 🛡️":"Socle tenu. Journée validée. 🔒");
   checkTrophies();render();
 }
@@ -1263,8 +1466,8 @@ function vToday(){
   <div class="chips"><div class="chip"><div class="disp">🔥 ${streak()}</div><div class="mut sm">jours d'affilée</div></div>
     <div class="chip"><div class="disp">${xp}</div><div class="mut sm">XP total</div></div>
     <div class="chip"><div class="disp">🛡️ ${jl}</div><div class="mut sm">jokers ce mois</div></div></div>
-  <div class="card"><div class="row" style="justify-content:space-between"><div><div class="mut sm">Grade</div><div class="disp" style="font-size:20px">${g.name}</div></div>
-    <div class="mut sm" style="text-align:right">${g.next?`${g.next-xp} XP avant<br><b style="color:var(--txt)">${g.nextName}</b>`:"Grade maximal"}</div></div>
+  <div class="card"><div class="row" style="justify-content:space-between"><div><div class="mut sm">${univ().lab} ${univ().e}</div><div class="disp" style="font-size:20px">${g.name}</div></div>
+    <div class="mut sm" style="text-align:right">${g.next?`${g.next-xp} XP avant<br><b style="color:var(--txt)">${g.nextName}</b>`:"Sommet atteint"}</div></div>
     <div class="bar"><i style="width:${pct}%"></i></div></div>
   ${over?vFinish():""}
   ${(()=>{const m=before?[]:missedYesterday(k).filter(a=>!L[a.id]);return m.length?`<div class="card nm"><b>⚠️ Ne rate pas deux fois</b><div class="mut sm">Raté hier : ${m.map(a=>esc(a.label)).join(", ")}. Une fois, c'est un accident. Deux fois, c'est le début d'une habitude.</div></div>`:""})()}
@@ -1283,11 +1486,11 @@ function vToday(){
   h+=`<div class="seg"><button class="${S.view==="slot"?"on":""}" data-view="slot">Ma journée</button><button class="${S.view==="goal"?"on":""}" data-view="goal">Par objectif</button></div>`;
   if(!D.length)h+=`<div class="card empty mut">Rien de prévu aujourd'hui. Jour de repos.</div>`;
   else if(S.view==="slot"){
-    const items=D.map(a=>({t:sortTime(a,k),a})).concat(evTasks(k).map(e=>({t:e.time,e}))).concat(calOf(k).filter(c=>!c.allDay).map(c=>({t:hm(c.b),c}))).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:((y.a&&y.a.core)-(x.a&&x.a.core)));
+    const items=D.map(a=>({t:sortTime(a,k),a})).concat(evTasks(k).map(e=>({t:e.time,e}))).concat(calOf(k).filter(c=>!c.allDay).map(c=>({t:hm(c.b),c}))).concat((S.appts||[]).filter(r=>r.date===k).map(r=>({t:r.time,c:{title:r.t,b:atTime(k,r.time).getTime(),e:atTime(k,r.time).getTime()+(r.dur||60)*60000,loc:r.loc||"",own:true}}))).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:((y.a&&y.a.core)-(x.a&&x.a.core)));
     {const ad=calOf(k).filter(c=>c.allDay);if(ad.length)h+=`<div class="mut sm" style="margin:-4px 0 10px">📅 Aujourd'hui : ${ad.map(c=>esc(c.title)).join(" · ")}</div>`}
     ["matin","midi","aprem","soir"].forEach(pp=>{const list=items.filter(x=>period(x.t)===pp);if(!list.filter(x=>!x.c).length&&!list.length)return;
       const dn=list.filter(x=>x.a?L[x.a.id]:x.e?L[x.e.key]:false).length;list.cnt=list.filter(x=>!x.c).length;
-      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.cnt}</div></div>${list.map(x=>x.c?`<div class="tlr calr"><span class="tt ev">${x.t}</span><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · ton agenda</div></div></div>`:x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>${(()=>{const c=!L[x.a.id]&&clashOf(x.a,k);return c?`<div class="clash" data-move="${x.a.id}">⚠️ Pendant « ${esc(c.title)} » — appuie pour décaler</div>`:""})()}`
+      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.cnt}</div></div>${list.map(x=>x.c?`<div class="tlr calr ${x.c.own?"rdv":""}"><span class="tt ev">${x.t}</span><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · ${x.c.own?"rendez-vous":"ton agenda"}</div></div></div>`:x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>${(()=>{const c=!L[x.a.id]&&clashOf(x.a,k);return c?`<div class="clash" data-move="${x.a.id}">⚠️ Pendant « ${esc(c.title)} » — appuie pour décaler</div>`:""})()}`
         :`<div class="tlr"><span class="tt ev">${x.t}</span><div class="act ${L[x.e.key]?"done":""}" data-evt="${x.e.key}"><div class="ck"></div><div class="lbl">${x.e.e} ${esc(x.e.label)}<div class="det">Date importante</div></div><div class="xp">+10</div></div></div>`).join("")}</div>`});
     h+=`<div class="mut sm" style="text-align:center;margin:-4px 0 12px">Appuie sur une heure pour décaler une promesse · * = changé pour aujourd'hui</div>`;
   }else{
@@ -1405,6 +1608,8 @@ function vStats(){
     <div class="mut sm" style="margin:6px 0 4px">Quelqu'un à qui envoyer ton bilan du dimanche en un appui (WhatsApp ou SMS). Rien n'est envoyé sans ton appui.</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input data-pt="name" value="${esc((S.partner||{}).name||"")}" placeholder="Prénom"><input data-pt="phone" inputmode="tel" value="${esc((S.partner||{}).phone||"")}" placeholder="06 12 34 56 78"></div></div>
   <div class="card"><div class="disp" style="font-size:16px">Réglages</div>
+    <label class="f">Univers des grades</label><div class="segs">${Object.entries(UNIVERS).map(([k,u])=>`<button class="${((S.profile||{}).univ||"ent")===k?"on":""}" data-do="univ:${k}">${u.e} ${u.n}</button>`).join("")}</div>
+    <div class="mut sm" style="margin-top:4px">${univ().g.join(" → ")}</div>
     <label class="f">Début du programme</label><input type="date" data-set="startDate" value="${S.startDate}">
     <label class="f">Durée (jours)</label><input type="number" min="9" max="365" data-set="length" value="${S.length}">
     <div class="row" style="margin-top:12px;flex-wrap:wrap">
@@ -1422,7 +1627,17 @@ function vStats(){
 /* ---------- interactions ---------- */
 function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2800)}
 function run(cmd){
+  if(cmd.startsWith("agck:")){const it=agCur[cmd.slice(5)];closeModal();if(it)agCheck(it);return}
   const[c,id,x3]=cmd.split(":");const k=today();
+  if(c==="agadd"){agOpen(null);return}
+  if(c==="agmode"){agMode=id;render();return}
+  if(c==="agday"){agDay=+id===0?null:addDays(agDay||k,+id);if(agDay===k)agDay=null;render();return}
+  if(c==="agkind"){agRead();agForm.kind=id;if(id==="rdv"&&(!agForm.dur||agForm.dur<60))agForm.dur=60;openModal(agSheet(agForm));return}
+  if(c==="agsave"){agSave();return}
+  if(c==="agdel"){agDelete();return}
+  if(c==="agmv"){closeModal();moveSheet(id,agDay||k);return}
+  if(c==="gkind"){if(x3==="task")S.cal.kind[id]="task";else delete S.cal.kind[id];closeModal();persist();render();toast(x3==="task"?"Traité comme une tâche à cocher":"Traité comme un rendez-vous");return}
+  if(c==="gwt"){if(S.cal.gw){S.cal.gw=false;persist();render()}else gWriteOk().then(ok=>{render();if(ok)toast("Écriture dans Google Agenda autorisée")});return}
   if(c==="ritualok"){const i=document.getElementById("prioIn");S.prio=S.prio||{};if(i&&i.value.trim())S.prio[k]=i.value.trim();S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();render();toast("C'est parti. Une journée à la fois.");return}
   if(c==="ritualskip"){S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();return}
   if(c==="ritualopen"){openModal(vRitual());return}
@@ -1446,6 +1661,8 @@ function run(cmd){
   if(c==="hoff"){S.health={on:false};persist();render();return}
   if(c==="hsync"){syncHealth(true).then(()=>{render();toast("Données santé actualisées")});return}
   if(c==="modt"){toggleModule(id);return}
+  if(c==="obintro"){if(ob){ob.intro=true;render();scrollTo(0,0)}return}
+  if(c==="univ"){S.profile=S.profile||{};S.profile.univ=id;persist();render();toast("Univers : "+univ().n+" · tu es "+gradeOf(totalXP()).name);return}
   if(c==="bweigh"){const v=num((document.getElementById("bW")||{}).value);if(v===null||v<20||v>400){toast("Saisis ton poids en kg");return}addWeight(v);persist();checkTrophies();render();toast("Pesée enregistrée");return}
   if(c==="tdadd"){const t=(document.getElementById("tdT").value||"").trim();if(!t){toast("Écris ta tâche");return}
     const d=document.getElementById("tdD").value||"",hh=document.getElementById("tdH").value||"";S.todos=S.todos||[];S.todos.push({id:uid(),t,date:d,time:hh,done:false});todoDate=d;persist();render();
@@ -1460,9 +1677,9 @@ function run(cmd){
   if(c==="wdel"){S.wealth.items=S.wealth.items.filter(i=>i.id!==id);snapWealth();persist();render();return}
   if(c==="wsnap"){snapWealth();persist();render();toast("Relevé enregistré");return}
   if(c==="calon"){connectCalendar();return}
-  if(c==="caloff"){S.cal={on:false};calCache={};persist();render();return}
+  if(c==="caloff"){S.cal.on=false;calCache={};persist();render();return}
   if(c==="calrefresh"){loadCalendar(true).then(()=>toast("Agenda actualisé"));return}
-  if(c==="mvafter"){applyMove(id,k,"today",x3.slice(0,2)+":"+x3.slice(2));closeModal();persist();render();return}
+  if(c==="mvafter"){applyMove(id,mvDay||k,"today",x3.slice(0,2)+":"+x3.slice(2));closeModal();persist();render();return}
   if(c==="dok"){const n=(document.getElementById("drN").value||"").trim();if(!n){toast("Indique ton rêve");return}
     const o={name:n,price:num(document.getElementById("drP").value)||0,date:document.getElementById("drD").value||"",saved:num(document.getElementById("drS").value)||0,why:(document.getElementById("drW").value||"").trim(),art:document.getElementById("drA").value};
     S.dreams=S.dreams||[];if(dreamEdit){Object.assign(S.dreams.find(x=>x.id===dreamEdit)||{},o)}else{const d={id:uid(),...o};if(o.art==="villa"&&/aventador|lambo|ferrari|porsche|mclaren|bugatti|voiture|v[ée]hicule|\bauto\b|car\b/i.test(o.name))d.art="car";S.dreams.push(d);dreamEdit=d.id;toast("Rêve ajouté. Ajoute ta photo !")}persist();render();return}
@@ -1471,7 +1688,7 @@ function run(cmd){
   if(c==="ddel"){S.dreams=(S.dreams||[]).filter(d=>d.id!==id);delete S.photos["d:"+id];dreamEdit=null;persist();render();return}
   if(c==="dsave"){const i=document.querySelector(`[data-dsave="${id}"]`),v=i&&num(i.value),d=(S.dreams||[]).find(x=>x.id===id);if(v===null||!d){toast("Saisis un montant");return}d.saved=(+d.saved||0)+v;(d.hist=d.hist||[]).push({d:k,v});persist();render();toast(`+${eur(v)} pour ${d.name}`);return}
   if(c==="mvadd"){const i=document.getElementById("mvT");if(i)i.value=addMin(i.value,+id);return}
-  if(c==="mvok"){const t=document.getElementById("mvT").value,sc=(document.querySelector('input[name="mvS"]:checked')||{}).value||"today";if(t){applyMove(id,k,sc,t)}closeModal();persist();render();return}
+  if(c==="mvok"){const t=document.getElementById("mvT").value,sc=(document.querySelector('input[name="mvS"]:checked')||{}).value||"today";if(t){applyMove(id,mvDay||k,sc,t)}closeModal();persist();render();return}
   if(c==="mvpost"){postpone(id,k);closeModal();persist();render();return}
   if(c==="tday"){typeDay=+id;render();return}
   if(c==="evtype"){evType=id;render();return}
@@ -1479,7 +1696,7 @@ function run(cmd){
     const prep=[...document.querySelectorAll(".chk input:checked")].map(x=>+x.value);S.events=S.events||[];S.events.push({id:uid(),type:evType,name:n,date:d,prep:prep.length?prep:EVT[evType].def});toast("Date ajoutée");persist();render();return}
   if(c==="evdel"){S.events=(S.events||[]).filter(e=>e.id!==id);persist();render();return}
   if(c==="review"){rvEnd=id||k;openModal(vReview(rvEnd));return}
-  if(c==="closemodal"){closeModal();return}
+  if(c==="closemodal"){closeModal();if(tab==="agenda")render();return}
   if(c==="reviewseen"){S.reviews=S.reviews||{};S.reviews[id]=true;closeModal()}
   if(c==="adj"){const a=S.actions.find(x=>x.id===id);if(a){if(x3==="f135")a.freq="135";if(x3&&x3.startsWith("rt-")){a.time=x3.slice(3,5)+":"+x3.slice(5,7);a.wt={}}if(x3==="bonus")a.core=false;if(x3==="ease"&&a.steps){const p=phaseOf(k);if(p>0)a.steps[p]=a.steps[p-1]}toast("Ajusté : "+a.label)}
     persist();const m=document.getElementById("modal");if(m.classList.contains("on"))openModal(vReview(rvEnd||k));render();return}
@@ -1528,6 +1745,8 @@ document.addEventListener("click",e=>{
   const tdl=e.target.closest("[data-tdel]");if(tdl){S.todos=(S.todos||[]).filter(t=>t.id!==tdl.dataset.tdel);persist();render();return}
   const tdo=e.target.closest("[data-todo]");if(tdo){const t=(S.todos||[]).find(x=>x.id===tdo.dataset.todo);if(t){const k=today(),L=S.log[k]||(S.log[k]={});t.done=!t.done;t.doneAt=t.done?k:null;
     if(t.done){L["td:"+t.id]={x:5,g:null};toast("✓ Fait")}else delete L["td:"+t.id];if(!Object.keys(L).length)delete S.log[k];persist();checkTrophies();render()}return}
+  const gck=e.target.closest("[data-gck]");if(gck){if(Date.now()-suppressClick>700){const it=agCur[gck.dataset.gck];if(it)agCheck(it)}return}
+  const gb=e.target.closest("[data-gb]");if(gb){if(Date.now()-suppressClick>700)agOpen(agCur[gb.dataset.gb]);return}
   const mvb=e.target.closest("[data-move]");if(mvb){moveSheet(mvb.dataset.move,today());return}
   const evb=e.target.closest("[data-evt]");if(evb){const k=today(),key=evb.dataset.evt,L=S.log[k]||(S.log[k]={});if(L[key])delete L[key];else{L[key]={x:10,g:null};toast("✓ C'est fait")}if(!Object.keys(L).length)delete S.log[k];persist();render();return}
   const tm=e.target.closest("[data-timer]");if(tm){startTimer(tm.dataset.timer);return}

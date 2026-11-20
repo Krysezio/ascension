@@ -32,7 +32,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 /** Outils natifs : sauvegarde dans Téléchargements/Ascension et mise à jour du widget. */
-@CapacitorPlugin(name = "Tools", permissions = { @Permission(strings = { Manifest.permission.READ_CALENDAR }, alias = "calendar") })
+@CapacitorPlugin(name = "Tools", permissions = { @Permission(strings = { Manifest.permission.READ_CALENDAR }, alias = "calendar"), @Permission(strings = { Manifest.permission.WRITE_CALENDAR }, alias = "calwrite") })
 public class ToolsPlugin extends Plugin {
 
     @PluginMethod
@@ -105,7 +105,8 @@ public class ToolsPlugin extends Plugin {
         ContentUris.appendId(b, start);
         ContentUris.appendId(b, end);
         String[] cols = { CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN, CalendarContract.Instances.END,
-                CalendarContract.Instances.ALL_DAY, CalendarContract.Instances.CALENDAR_DISPLAY_NAME, CalendarContract.Instances.EVENT_LOCATION };
+                CalendarContract.Instances.ALL_DAY, CalendarContract.Instances.CALENDAR_DISPLAY_NAME, CalendarContract.Instances.EVENT_LOCATION,
+                CalendarContract.Instances.EVENT_ID, CalendarContract.Instances.RRULE };
         try (Cursor c = getContext().getContentResolver().query(b.build(), cols, null, null, CalendarContract.Instances.BEGIN + " ASC")) {
             while (c != null && c.moveToNext()) {
                 JSObject e = new JSObject();
@@ -115,6 +116,8 @@ public class ToolsPlugin extends Plugin {
                 e.put("allDay", c.getInt(3) == 1);
                 e.put("calendar", c.getString(4));
                 e.put("location", c.getString(5));
+                e.put("id", c.getLong(6));
+                e.put("recurring", c.getString(7) != null && !c.getString(7).isEmpty());
                 out.put(e);
             }
             JSObject r = new JSObject();
@@ -123,6 +126,93 @@ public class ToolsPlugin extends Plugin {
         } catch (Exception ex) {
             call.reject("Lecture de l'agenda impossible : " + ex.getMessage());
         }
+    }
+
+    // ---------- écriture dans l'agenda du téléphone (Google Agenda synchronisé) ----------
+    @PluginMethod
+    public void calWriteState(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("state", getPermissionState("calwrite").toString());
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void requestCalWrite(PluginCall call) {
+        if (getPermissionState("calwrite") == PermissionState.GRANTED) { calWriteState(call); return; }
+        requestPermissionForAlias("calwrite", call, "calWritePermCallback");
+    }
+
+    @PermissionCallback
+    private void calWritePermCallback(PluginCall call) {
+        calWriteState(call);
+    }
+
+    /** Agenda cible : l'agenda principal Google modifiable, sinon le premier agenda modifiable visible. */
+    private long targetCalendar() {
+        String[] cols = { CalendarContract.Calendars._ID, CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.Calendars.IS_PRIMARY, CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.VISIBLE };
+        long best = -1; int bestScore = -1;
+        try (Cursor c = getContext().getContentResolver().query(CalendarContract.Calendars.CONTENT_URI, cols, null, null, null)) {
+            while (c != null && c.moveToNext()) {
+                if (c.getInt(3) < CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR) continue;
+                int score = 0;
+                if ("com.google".equals(c.getString(1))) score += 4;
+                if (c.getInt(2) == 1) score += 2;
+                if (c.getInt(4) == 1) score += 1;
+                if (score > bestScore) { bestScore = score; best = c.getLong(0); }
+            }
+        } catch (Exception ignored) {}
+        return best;
+    }
+
+    @PluginMethod
+    public void createEvent(PluginCall call) {
+        if (getPermissionState("calwrite") != PermissionState.GRANTED) { call.reject("Écriture dans l'agenda non autorisée"); return; }
+        long cal = targetCalendar();
+        if (cal < 0) { call.reject("Aucun agenda modifiable sur ce téléphone"); return; }
+        try {
+            ContentValues v = new ContentValues();
+            v.put(CalendarContract.Events.CALENDAR_ID, cal);
+            v.put(CalendarContract.Events.TITLE, call.getString("title", "Rendez-vous"));
+            v.put(CalendarContract.Events.DTSTART, call.getLong("begin"));
+            v.put(CalendarContract.Events.DTEND, call.getLong("end"));
+            v.put(CalendarContract.Events.EVENT_LOCATION, call.getString("location", ""));
+            v.put(CalendarContract.Events.DESCRIPTION, "Créé depuis Ascension");
+            v.put(CalendarContract.Events.EVENT_TIMEZONE, java.util.TimeZone.getDefault().getID());
+            Uri u = getContext().getContentResolver().insert(CalendarContract.Events.CONTENT_URI, v);
+            if (u == null) throw new Exception("insertion refusée");
+            JSObject r = new JSObject();
+            r.put("id", ContentUris.parseId(u));
+            call.resolve(r);
+        } catch (Exception e) { call.reject("Création impossible : " + e.getMessage()); }
+    }
+
+    @PluginMethod
+    public void updateEvent(PluginCall call) {
+        if (getPermissionState("calwrite") != PermissionState.GRANTED) { call.reject("Écriture dans l'agenda non autorisée"); return; }
+        try {
+            ContentValues v = new ContentValues();
+            if (call.hasOption("title")) v.put(CalendarContract.Events.TITLE, call.getString("title"));
+            if (call.hasOption("begin")) v.put(CalendarContract.Events.DTSTART, call.getLong("begin"));
+            if (call.hasOption("end")) v.put(CalendarContract.Events.DTEND, call.getLong("end"));
+            if (call.hasOption("location")) v.put(CalendarContract.Events.EVENT_LOCATION, call.getString("location"));
+            Uri u = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, call.getLong("id"));
+            int n = getContext().getContentResolver().update(u, v, null, null);
+            JSObject r = new JSObject();
+            r.put("updated", n);
+            call.resolve(r);
+        } catch (Exception e) { call.reject("Modification impossible : " + e.getMessage()); }
+    }
+
+    @PluginMethod
+    public void deleteEvent(PluginCall call) {
+        if (getPermissionState("calwrite") != PermissionState.GRANTED) { call.reject("Écriture dans l'agenda non autorisée"); return; }
+        try {
+            Uri u = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, call.getLong("id"));
+            int n = getContext().getContentResolver().delete(u, null, null);
+            JSObject r = new JSObject();
+            r.put("deleted", n);
+            call.resolve(r);
+        } catch (Exception e) { call.reject("Suppression impossible : " + e.getMessage()); }
     }
 
     private static int authenticators() {
