@@ -184,6 +184,7 @@ nav button{max-width:110px;font-size:11px}
 .gb.done .gck{background:var(--acc)}
 .gic{flex:none;font-size:12px;margin-top:1px}
 .btn.mic{font-size:17px;padding:8px 12px}
+input[type=checkbox]{accent-color:var(--acc)}
 .gb.one{align-items:center;padding-top:2px;padding-bottom:2px}.gb.one .gtx{display:flex;gap:6px;align-items:baseline}.gb.one .gtx b{flex:0 1 auto;min-width:0}.gb.one .gtx small{flex:1 1 0;min-width:0}.gb.one .gck{margin-top:0}
 .glegend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--mut);margin-bottom:14px}.glegend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}.lt{background:#16130d;border:1px solid var(--acc)}.lr{background:var(--acc)}
 .clash{font-size:12px;color:#f0b46a;padding:0 0 8px 60px;cursor:pointer}
@@ -927,30 +928,7 @@ const AIK="ascension_ai_key";
 async function aiLoad(){try{if(Prefs){const r=await Prefs.get({key:"aikey"});aiKey=(r&&r.value)||""}else aiKey=localStorage.getItem(AIK)||""}catch(e){}}
 async function aiSaveKey(k){aiKey=(k||"").trim();try{if(Prefs)await Prefs.set({key:"aikey",value:aiKey});else localStorage.setItem(AIK,aiKey)}catch(e){}}
 const WDAY=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
-function aiSystem(){
-  const n=new Date(),k=today(),days=[...Array(8)].map((_,i)=>{const d=addDays(k,i);return WDAY[parse(d).getDay()]+" "+d}).join(", ");
-  return`Tu transformes une phrase dictée en français en éléments d'agenda pour l'appli Ascension.
-Aujourd'hui : ${WDAY[n.getDay()]} ${k}, il est ${z(n.getHours())}:${z(n.getMinutes())}. Les 8 prochains jours : ${days}.
-Réponds UNIQUEMENT avec un objet JSON, sans texte autour :
-{"items":[{"kind":"rdv"|"task","title":"…","date":"YYYY-MM-DD" ou "","time":"HH:MM" ou "","dur":minutes,"loc":"…"}]}
-Règles :
-- "rdv" = rendez-vous, réunion, repas, appel planifié avec quelqu'un, consultation. "task" = chose à faire (appeler, envoyer, acheter, préparer…).
-- title : court et clair, avec la personne ou l'objet, sans la date ni l'heure ni le lieu. Majuscule au début. Ex. "Rendez-vous avec Paul", "Appeler la banque".
-- loc : le lieu s'il est dit (chez le notaire, à Rennes…), sinon "".
-- date : résous « demain », « jeudi », « le 3 », « la semaine prochaine » (lundi prochain). Si une heure est donnée sans date : aujourd'hui si l'heure n'est pas passée, sinon demain. Tâche sans date ni heure : "".
-- time : "HH:MM" sur 24 h (« 3 h de l'après-midi » = 15:00, « midi » = 12:00, « 9 h et demie » = 09:30). Sinon "".
-- dur : durée dite, sinon 60 pour un rdv, 30 pour une tâche.
-- Plusieurs éléments dans la phrase = plusieurs objets dans items.`;
-}
 function jsonOf(t){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<a)throw new Error("Réponse illisible");return JSON.parse(t.slice(a,b+1))}
-async function aiParse(text){
-  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"x-api-key":aiKey,"anthropic-version":"2023-06-01","content-type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:"claude-haiku-5-5",max_tokens:500,system:aiSystem(),messages:[{role:"user",content:text}]})});
-  const j=await r.json().catch(()=>({}));
-  if(!r.ok){const m=(j.error&&j.error.message)||("HTTP "+r.status);throw new Error(r.status===401?"Clé refusée":r.status===429?"Limite atteinte":/credit|balance/i.test(m)?"Crédit épuisé":m)}
-  S.ai=S.ai||{};const mo=today().slice(0,7);if(S.ai.m!==mo){S.ai.m=mo;S.ai.n=0;S.ai.tok=0}S.ai.n++;S.ai.tok+=((j.usage||{}).input_tokens||0)+5*((j.usage||{}).output_tokens||0);persist();
-  const o=jsonOf(((j.content||[]).find(c=>c.type==="text")||{}).text||"");return(o.items||[]).filter(i=>i&&i.title);
-}
 /* analyse locale de secours (sans IA) */
 const NUMW={un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,neuf:9,dix:10,onze:11,douze:12,treize:13,quatorze:14,quinze:15,seize:16,"dix-sept":17,"dix-huit":18,"dix-neuf":19,vingt:20,"vingt-et-un":21,"vingt-deux":22,"vingt-trois":23};
 function localParse(text){
@@ -976,37 +954,114 @@ function localParse(text){
   return title?[{kind:rdv?"rdv":"task",title,date,time,dur:rdv?60:30,loc}]:[];
 }
 let vcItems=[],vcText="",vcVia="";
+function aiContext(){
+  const k=today(),L=[],w=parse(k).getDay();
+  (S.appts||[]).filter(r=>r.date>=addDays(k,-1)).forEach(r=>L.push(`r:${r.id} | rdv Ascension | ${r.t} | ${r.date} ${r.time} | ${r.dur||60} min${r.loc?" | "+r.loc:""}`));
+  (S.todos||[]).filter(t=>!t.done).forEach(t=>L.push(`t:${t.id} | tâche | ${t.t} | ${t.date||"sans date"}${t.time?" "+t.time:""}`));
+  S.actions.forEach(a=>L.push(`a:${a.id} | promesse${a.core?" (socle)":""} | ${a.label} | ${FREQ[a.freq]||"tous les jours"} | heure aujourd'hui ${routineTime(a,w)||SLOT_T(a.slot)||"libre"}`));
+  for(let i=0;i<14;i++){const d=addDays(k,i);calOf(d).filter(c=>!c.allDay&&c.id!=null&&!c.split).forEach(c=>L.push(`g:${c.id} | rdv Google${c.rec?" (récurrent : non modifiable)":""} | ${c.title} | ${d} ${hm(c.b)}–${hm(c.e)}`))}
+  return L.slice(0,200).join("\n")||"(rien)";
+}
+function aiSystem(){
+  const n=new Date(),k=today(),days=[...Array(8)].map((_,i)=>{const d=addDays(k,i);return WDAY[parse(d).getDay()]+" "+d}).join(", ");
+  return`Tu es l'assistant d'agenda de l'appli Ascension. Tu transformes une phrase dictée en français en opérations sur l'agenda.
+Aujourd'hui : ${WDAY[n.getDay()]} ${k}, il est ${z(n.getHours())}:${z(n.getMinutes())}. Les 8 prochains jours : ${days}.
+Éléments existants (référence | type | intitulé | date et heure | …) :
+${aiContext()}
+
+Réponds UNIQUEMENT avec un objet JSON, sans texte autour :
+{"ops":[ … ]}
+Opérations possibles :
+- {"op":"add","kind":"rdv"|"task","title":"…","date":"YYYY-MM-DD" ou "","time":"HH:MM" ou "","dur":minutes,"loc":"…"}
+- {"op":"move","ref":"…","date":"YYYY-MM-DD","time":"HH:MM","scope":"once"|"weekday"|"always"} — décaler un élément existant. scope ne sert qu'aux promesses (ref a:…) : "once" = seulement ce jour-là (par défaut), "weekday" = tous les mêmes jours de la semaine (« tous les jeudis »), "always" = tous les jours (« désormais », « à partir de maintenant », « tous les jours »). date = le jour concerné.
+- {"op":"edit","ref":"…","title":"…","loc":"…","dur":minutes} — renommer ou changer lieu / durée (mets seulement les champs à changer).
+- {"op":"delete","ref":"…"} — supprimer / annuler.
+- {"op":"done","ref":"…"} — marquer comme fait.
+Règles :
+- Pour modifier ou supprimer, retrouve l'élément le plus probable dans la liste (intitulé approchant, personne, jour) et reprends sa référence exacte. Si rien ne correspond, n'invente pas : n'ajoute pas d'opération.
+- Un rdv Google récurrent ne peut pas être modifié.
+- "rdv" = rendez-vous, réunion, repas, appel planifié, consultation. "task" = chose à faire (appeler, envoyer, acheter, préparer…).
+- title : court, avec la personne ou l'objet, sans date ni heure ni lieu, majuscule au début.
+- Dates : résous « demain », « jeudi », « le 3 », « la semaine prochaine ». Heure sans date : aujourd'hui si elle n'est pas passée, sinon demain. Heures sur 24 h (« 3 h de l'après-midi » = 15:00, « midi » = 12:00).
+- Durée par défaut : 60 pour un rdv, 30 pour une tâche. Plusieurs demandes = plusieurs opérations.`;
+}
+async function aiParse(text){
+  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"x-api-key":aiKey,"anthropic-version":"2023-06-01","content-type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:"claude-haiku-5-5",max_tokens:700,system:aiSystem(),messages:[{role:"user",content:text}]})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const m=(j.error&&j.error.message)||("HTTP "+r.status);throw new Error(r.status===401?"Clé refusée":r.status===429?"Limite atteinte":/credit|balance/i.test(m)?"Crédit épuisé":m)}
+  S.ai=S.ai||{};const mo=today().slice(0,7);if(S.ai.m!==mo){S.ai.m=mo;S.ai.n=0;S.ai.tok=0}S.ai.n++;S.ai.tok+=((j.usage||{}).input_tokens||0)+5*((j.usage||{}).output_tokens||0);persist();
+  const o=jsonOf(((j.content||[]).find(c=>c.type==="text")||{}).text||"");
+  const ops=(o.ops||[]).concat((o.items||[]).map(i=>({op:"add",...i})));
+  return ops.filter(x=>x&&x.op&&(x.op==="add"?x.title:x.ref&&refFind(x.ref)));
+}
+function refFind(ref){
+  const t=ref.slice(0,1),id=ref.slice(2);
+  if(t==="r"){const r=(S.appts||[]).find(x=>x.id===id);return r&&{name:r.t,when:fmt(r.date)+" "+r.time,obj:r}}
+  if(t==="t"){const x=(S.todos||[]).find(y=>y.id===id);return x&&{name:x.t,when:(x.date?fmt(x.date):"")+(x.time?" "+x.time:""),obj:x}}
+  if(t==="a"){const a=S.actions.find(y=>y.id===id);return a&&{name:a.label,when:"promesse",obj:a}}
+  if(t==="g"){for(const d of Object.keys(calCache)){const c=calCache[d].find(e=>String(e.id)===id&&!e.allDay);if(c)return c.rec?null:{name:c.title,when:fmt(d)+" "+hm(c.b),obj:c,day:d}}}
+  return null;
+}
+const SCOPE_L={once:"ce jour-là seulement",weekday:"journée type",always:"routine, tous les jours"};
+function opLabel(o){
+  if(o.op==="add")return`${o.kind==="rdv"?"📅":"✅"} <b>Ajouter</b> ${esc(o.title)}<div class="det">${o.date?fmt(o.date):"Sans date"}${o.time?" · "+o.time:""}${o.loc?" · "+esc(o.loc):""}</div>`;
+  const f=refFind(o.ref)||{name:"?",when:""};const g=o.ref[0]==="g"?" · Google Agenda":"";
+  if(o.op==="move")return`🕐 <b>Déplacer</b> ${esc(f.name)}<div class="det">${esc(f.when)} → ${o.date?fmt(o.date):""} ${o.time||""}${o.ref[0]==="a"?" · "+SCOPE_L[o.scope||"once"]:""}${g}</div>`;
+  if(o.op==="edit")return`✏️ <b>Modifier</b> ${esc(f.name)}<div class="det">${[o.title&&"→ "+esc(o.title),o.loc&&"lieu : "+esc(o.loc),o.dur&&"durée : "+durLab(+o.dur)].filter(Boolean).join(" · ")}${g}</div>`;
+  if(o.op==="delete")return`🗑 <b>Supprimer</b> ${esc(f.name)}<div class="det">${esc(f.when)}${g?" · ⚠️ aussi supprimé de Google Agenda":""}</div>`;
+  if(o.op==="done")return`✓ <b>Marquer fait</b> ${esc(f.name)}`;
+  return esc(o.op);
+}
+async function applyOp(o){
+  if(o.op==="add"){const it={kind:o.kind==="rdv"?"rdv":"task",t:String(o.title).trim(),date:o.date||"",time:o.time||"",dur:+o.dur||(o.kind==="rdv"?60:30),loc:o.loc||""};
+    if(it.kind==="task")S.todos.push({id:uid(),t:it.t,date:it.date,time:it.time,dur:it.dur,done:false});
+    else{const r={id:uid(),t:it.t,date:it.date||today(),time:it.time||"09:00",dur:it.dur,loc:it.loc};S.appts.push(r);if(vcG)await gUpsert(r)}return}
+  const f=refFind(o.ref);if(!f)return;const t=o.ref[0],k=today();
+  if(t==="r"){const r=f.obj;if(o.op==="delete"){if(r.gid)gDelete(r.gid);S.appts=S.appts.filter(x=>x!==r);return}
+    if(o.op==="move"){if(o.date)r.date=o.date;if(o.time)r.time=o.time}if(o.op==="edit"){if(o.title)r.t=o.title;if(o.loc)r.loc=o.loc;if(o.dur)r.dur=+o.dur}if(r.gid)await gUpsert(r);return}
+  if(t==="t"){const x=f.obj;if(o.op==="delete"){S.todos=S.todos.filter(y=>y!==x);return}if(o.op==="done"){if(!x.done){x.done=true;x.doneAt=k;(S.log[k]=S.log[k]||{})["td:"+x.id]={x:5,g:null}}return}
+    if(o.op==="move"){if(o.date)x.date=o.date;if(o.time)x.time=o.time}if(o.op==="edit"){if(o.title)x.t=o.title;if(o.dur)x.dur=+o.dur}return}
+  if(t==="a"){const a=f.obj;if(o.op==="move"&&o.time){applyMove(a.id,o.date||k,o.scope==="always"?"all":o.scope==="weekday"?"wd":"today",o.time)}
+    if(o.op==="edit"&&o.title)a.label=o.title;if(o.op==="done"&&!(S.log[k]||{})[a.id])toggle(a.id);if(o.op==="delete")toast("Une promesse se supprime dans Objectifs");return}
+  if(t==="g"){const c=f.obj;if(!await gWriteOk())return;
+    try{if(o.op==="delete")await Tools.deleteEvent({id:c.id});
+      else if(o.op==="move"){const b=atTime(o.date||f.day,o.time||hm(c.b)).getTime();await Tools.updateEvent({id:c.id,begin:b,end:b+(c.e-c.b)})}
+      else if(o.op==="edit"){const u={id:c.id};if(o.title)u.title=o.title;if(o.loc)u.location=o.loc;if(o.dur)u.end=c.b+o.dur*60000;await Tools.updateEvent(u)}}catch(e){toast("Google Agenda : "+(e&&e.message||e))}}
+}
+let vcOps=[],vcG=false;
+function vVoiceList(){
+  const hasR=vcOps.some(o=>o.op==="add"&&o.kind==="rdv");
+  return`<div class="mhead"><div><div class="day">🎙 ${vcOps.length} action${vcOps.length>1?"s":""}</div><h2 class="disp" style="font-size:18px">« ${esc(vcText)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  ${vcOps.map((o,i)=>`<label class="act" style="cursor:pointer"><input type="checkbox" data-vop="${i}" checked style="width:20px;height:20px;flex:none"><div class="lbl">${opLabel(o)}</div>${o.op==="add"?`<button class="tbtn" data-do="vcedit:${i}">Modifier</button>`:""}</label>`).join("")}
+  ${hasR?`<label class="sc" style="margin-top:10px"><input type="checkbox" id="vcG" ${S.cal.gw?"checked":""}><span><b>Nouveaux rendez-vous aussi dans Google Agenda</b></span></label>`:""}
+  <button class="btn p" style="width:100%;padding:13px;margin-top:10px" data-do="vcall">Appliquer</button>`;
+}
+async function voiceApply(){
+  vcG=!!(document.getElementById("vcG")||{}).checked;
+  const sel=[...document.querySelectorAll("[data-vop]")].filter(x=>x.checked).map(x=>vcOps[+x.dataset.vop]);
+  closeModal();for(const o of sel)await applyOp(o);
+  persist();checkTrophies();await loadCalendar(true);render();toast(sel.length?sel.length+" action"+(sel.length>1?"s":"")+" appliquée"+(sel.length>1?"s":""):"Rien appliqué");vcOps=[];
+}
+async function voiceHandle(text){
+  vcText=text;openModal(`<div class="mhead"><div><div class="day">🎙 Compris</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><div class="mut sm">${aiKey?"L'assistant analyse ta demande…":"Analyse…"}</div>`);
+  let ops=[];vcVia="";
+  if(aiKey){try{ops=await aiParse(text);vcVia="ai"}catch(e){aiState=String(e.message||e);toast("Assistant IA : "+aiState+" · analyse simple");vcVia="local"}}
+  if(vcVia!=="ai"){vcVia="local";if(/\b(décale|déplace|repousse|avance|annule|supprime|renomme|change)/i.test(text)&&!aiKey){toast("Modifier l'existant demande l'assistant IA (clé dans Progression)")}ops=localParse(text).map(i=>({op:"add",...i}))}
+  if(!ops.length){openModal(`<div class="mhead"><div><div class="day">🎙 Pas compris</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><div class="mut sm" style="margin-bottom:10px">Je n'ai rien trouvé à ajouter ou à modifier.</div><button class="btn p" style="width:100%;padding:12px" data-do="voice">Réessayer</button>`);return}
+  if(ops.length===1&&ops[0].op==="add"){const o=ops[0],it={kind:o.kind==="rdv"?"rdv":"task",t:String(o.title||"").trim(),date:o.date||"",time:o.time||"",dur:+o.dur||(o.kind==="rdv"?60:30),loc:o.loc||""};if(!it.date&&it.kind==="rdv")it.date=agDay||today();openModal(agSheet({...it,g:it.kind==="rdv"&&!!S.cal.gw,voice:text,via:vcVia}));return}
+  vcOps=ops;openModal(vVoiceList());
+}
+
 async function voiceStart(){
   if(!Tools||!Tools.listen){toast("La dictée fonctionne dans l'appli Android");return}
   let text="";try{text=((await Tools.listen({prompt:"Ex. « Rendez-vous demain 15 h avec Paul chez le notaire »"}))||{}).text||""}catch(e){if(!/cancel/.test(String(e&&e.message||e)))toast(String(e&&e.message||e));return}
   if(!text.trim())return;await voiceHandle(text);
 }
-async function voiceHandle(text){
-  vcText=text;openModal(`<div class="mhead"><div><div class="day">🎙 Compris</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><div class="mut sm">${aiKey?"L'assistant analyse ta demande…":"Analyse…"}</div>`);
-  let items=[];vcVia="";
-  if(aiKey){try{items=await aiParse(text);vcVia="ai"}catch(e){aiState=String(e.message||e);toast("Assistant IA : "+aiState+" · analyse simple");items=localParse(text);vcVia="local"}}
-  else{items=localParse(text);vcVia="local"}
-  items=items.map(i=>({kind:i.kind==="rdv"?"rdv":"task",t:String(i.title||"").trim(),date:i.date||"",time:i.time||"",dur:+i.dur||(i.kind==="rdv"?60:30),loc:i.loc||""}));
-  if(!items.length){openModal(`<div class="mhead"><div><div class="day">🎙 Pas compris</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><button class="btn p" style="width:100%;padding:12px" data-do="voice">Réessayer</button>`);return}
-  if(items.length===1){const o=items[0];if(!o.date&&o.kind==="rdv")o.date=agDay||today();openModal(agSheet({...o,g:o.kind==="rdv"&&!!S.cal.gw,voice:text,via:vcVia}));return}
-  vcItems=items;openModal(vVoiceList());
-}
-function vVoiceList(){
-  return`<div class="mhead"><div><div class="day">🎙 ${vcItems.length} éléments</div><h2 class="disp" style="font-size:18px">« ${esc(vcText)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div>
-  ${vcItems.map((o,i)=>`<div class="act" style="cursor:default"><span>${o.kind==="rdv"?"📅":"✅"}</span><div class="lbl">${esc(o.t)}<div class="det">${o.date?fmt(o.date):"Sans date"}${o.time?" · "+o.time:""}${o.loc?" · "+esc(o.loc):""}</div></div><button class="tbtn" data-do="vcedit:${i}">Modifier</button></div>`).join("")}
-  ${vcItems.some(o=>o.kind==="rdv")?`<label class="sc" style="margin-top:10px"><input type="checkbox" id="vcG" ${S.cal.gw?"checked":""}><span><b>Rendez-vous aussi dans Google Agenda</b></span></label>`:""}
-  <button class="btn p" style="width:100%;padding:13px;margin-top:10px" data-do="vcall">Tout ajouter</button>`;
-}
-async function voiceAddAll(){
-  const g=!!(document.getElementById("vcG")||{}).checked;
-  for(const o of vcItems){if(o.kind==="task")S.todos.push({id:uid(),t:o.t,date:o.date,time:o.time,dur:o.dur,done:false});
-    else{const r={id:uid(),t:o.t,date:o.date||today(),time:o.time||"09:00",dur:o.dur,loc:o.loc};S.appts.push(r);if(g)await gUpsert(r)}}
-  closeModal();persist();render();toast(vcItems.length+" éléments ajoutés");vcItems=[];
-}
 function vAiCard(){
   const u=S.ai||{},mo=today().slice(0,7),n=u.m===mo?u.n||0:0,cost=u.m===mo?(u.tok||0)*0.1/1e6:0;
   return`<div class="card"><div class="disp" style="font-size:16px">🎙 Assistant vocal</div>
-  <div class="mut sm" style="margin:6px 0 8px">Appuie sur 🎙 dans l'agenda et dicte : « Rendez-vous demain 15 h avec Paul chez le notaire », « Tâche appeler la banque jeudi ». ${aiKey?"✓ L'IA Claude comprend tes phrases, même longues ou avec plusieurs éléments.":"Sans clé, une analyse simple fonctionne pour les phrases courtes. Ajoute ta clé Claude pour tout comprendre."}</div>
+  <div class="mut sm" style="margin:6px 0 8px">Appuie sur 🎙 dans l'agenda et dicte : « Rendez-vous demain 15 h avec Paul chez le notaire », « Tâche appeler la banque jeudi ». ${aiKey?"✓ L'IA Claude comprend tes phrases, ajoute, déplace (« décale mon sport à 19 h »), renomme, annule ou coche.":"Sans clé, une analyse simple fonctionne pour les phrases courtes. Ajoute ta clé Claude pour tout comprendre."}</div>
   <label class="f">Clé API Claude ${aiKey?"(enregistrée sur ce téléphone)":""}</label>
   <div class="row" style="gap:8px"><input id="aiK" type="password" autocomplete="off" placeholder="${aiKey?"•••• "+esc(aiKey.slice(-4)):"sk-ant-api03-…"}" style="flex:1;min-width:0"><button class="btn p" data-do="aikey">${aiKey?"Remplacer":"Enregistrer"}</button></div>
   ${aiKey?`<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" data-do="aitest">Tester</button><button class="btn d" data-confirm="aidel">Retirer la clé</button></div>
@@ -1727,8 +1782,8 @@ function run(cmd){
   const[c,id,x3]=cmd.split(":");const k=today();
   if(c==="agadd"){agOpen(null);return}
   if(c==="voice"){closeModal();voiceStart();return}
-  if(c==="vcall"){voiceAddAll();return}
-  if(c==="vcedit"){const o=vcItems[+id];if(o){vcItems.splice(+id,1);openModal(agSheet({...o,date:o.date||(o.kind==="rdv"?today():""),g:o.kind==="rdv"&&!!S.cal.gw,voice:vcText,via:vcVia}))}return}
+  if(c==="vcall"){voiceApply();return}
+  if(c==="vcedit"){const o=vcOps[+id];if(o){vcOps.splice(+id,1);const it={kind:o.kind==="rdv"?"rdv":"task",t:o.title,date:o.date||(o.kind==="rdv"?today():""),time:o.time||"",dur:+o.dur||60,loc:o.loc||""};openModal(agSheet({...it,g:it.kind==="rdv"&&!!S.cal.gw,voice:vcText,via:vcVia}))}return}
   if(c==="aikey"){const v=(document.getElementById("aiK").value||"").trim();if(!/^sk-ant-/.test(v)){toast("Colle une clé qui commence par sk-ant-");return}aiSaveKey(v).then(()=>{aiState="";render();toast("Clé enregistrée sur ce téléphone")});return}
   if(c==="aidel"){aiSaveKey("").then(()=>{render();toast("Clé retirée")});return}
   if(c==="aitest"){toast("Test en cours…");aiParse("rendez-vous demain à 15 h avec Paul chez le notaire").then(it=>{aiState="";render();toast(it.length?"✓ Clé valide : "+it[0].title+" · "+(it[0].date?fmt(it[0].date):"")+" "+(it[0].time||""):"Réponse vide")},e=>{aiState=String(e.message||e);render();toast("Échec : "+aiState)});return}
