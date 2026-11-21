@@ -64,15 +64,15 @@ input:focus,select:focus{outline:none;border-color:var(--acc)}
 label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
 .loading{display:grid;place-items:center;height:70vh;color:var(--mut)}
 .ob{min-height:80vh;display:flex;flex-direction:column}
-.intro{min-height:88vh;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;padding-top:4vh}
-.intro .ilogo{width:120px;height:120px;animation:ilogo 1.6s cubic-bezier(.6,0,.2,1) both}
-.intro .ilogo svg{width:100%;height:100%;filter:drop-shadow(0 0 22px rgba(201,162,39,.35))}
-@keyframes ilogo{0%{opacity:0;transform:translateY(32vh) scale(.6)}35%{opacity:1;transform:translateY(32vh) scale(1.25)}55%{transform:translateY(32vh) scale(1.25)}100%{transform:translateY(0) scale(1)}}
-.intro .iw{font-size:13px;letter-spacing:.3em;color:var(--acc2);font-weight:700;margin-top:18px;animation:ifade .8s 1.6s both}
-.intro h1{font-size:34px;line-height:1.1;margin-top:10px;animation:ifade .8s 1.9s both}
+.intro{position:fixed;inset:0;z-index:60;background:#000;display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(env(safe-area-inset-top,0px) + 7vh) 22px calc(env(safe-area-inset-bottom,0px) + 22px);overflow:hidden}
+.intro .ilogo{width:120px;height:120px;flex:none;animation:ilogo 3.4s cubic-bezier(.6,0,.2,1) both}
+.intro .ilogo svg{width:100%;height:100%;filter:drop-shadow(0 0 26px rgba(201,162,39,.45))}
+@keyframes ilogo{0%{opacity:0;transform:translateY(calc(43vh - 60px - 7vh)) scale(.75)}24%{opacity:1;transform:translateY(calc(43vh - 60px - 7vh)) scale(1.3)}76%{opacity:1;transform:translateY(calc(43vh - 60px - 7vh)) scale(1.3)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.intro .iw{font-size:13px;letter-spacing:.3em;color:var(--acc2);font-weight:700;margin-top:18px;animation:ifade .8s 3.4s both}
+.intro h1{font-size:34px;line-height:1.1;margin-top:10px;animation:ifade .8s 3.7s both}
 .intro h1 span{background:linear-gradient(90deg,#f6dc8c,#c9a227);-webkit-background-clip:text;background-clip:text;color:transparent}
-.intro p{color:var(--mut);margin-top:16px;max-width:320px;font-size:16px;line-height:1.5;animation:ifade .8s 2.4s both}
-.intro .ib{margin-top:auto;width:100%;animation:ifade .8s 3s both}
+.intro p{color:var(--mut);margin-top:16px;max-width:320px;font-size:16px;line-height:1.5;animation:ifade .8s 4.2s both}
+.intro .ib{margin-top:auto;width:100%;max-width:440px;animation:ifade .8s 4.8s both}
 .intro .ib .btn{width:100%;padding:15px;font-size:16px}
 @keyframes ifade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .ob .prog{height:4px;background:var(--card2);border-radius:9px;margin:4px 0 26px;overflow:hidden}
