@@ -64,6 +64,13 @@ input:focus,select:focus{outline:none;border-color:var(--acc)}
 label.f{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
 .loading{display:grid;place-items:center;height:70vh;color:var(--mut)}
 .ob{min-height:80vh;display:flex;flex-direction:column}
+#launch{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
+#launch .lg{width:132px;height:132px;opacity:0;animation:lgin 1.1s .15s cubic-bezier(.2,.7,.2,1) forwards}
+#launch .lg svg{width:100%;height:100%;filter:drop-shadow(0 0 28px rgba(201,162,39,.5))}
+#launch .lw{margin-top:22px;font-size:13px;letter-spacing:.42em;color:#d4ab3c;font-weight:700;opacity:0;animation:lgw .9s 1.1s ease forwards}
+#launch.out{opacity:0;pointer-events:none}
+@keyframes lgin{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+@keyframes lgw{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .intro{position:fixed;inset:0;z-index:60;background:#000;display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(env(safe-area-inset-top,0px) + 7vh) 22px calc(env(safe-area-inset-bottom,0px) + 22px);overflow:hidden}
 .intro .ilogo{width:120px;height:120px;flex:none;animation:ilogo 3.4s cubic-bezier(.6,0,.2,1) both}
 .intro .ilogo svg{width:100%;height:100%;filter:drop-shadow(0 0 26px rgba(201,162,39,.45))}
@@ -218,6 +225,7 @@ input,select,textarea{min-width:0;max-width:100%}
 </style>
 </head>
 <body>
+<div id="launch"><div class="lg"><svg viewBox="0 0 512 512"><defs><linearGradient id="goldl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc8c"/><stop offset=".55" stop-color="#d4ab3c"/><stop offset="1" stop-color="#9c7418"/></linearGradient></defs><polygon points="256,92 280,138 168,404 124,404" fill="url(#goldl)"/><polygon points="256,92 388,404 344,404 232,138" fill="url(#goldl)"/><polyline points="190,338 256,256 322,338" fill="none" stroke="url(#goldl)" stroke-width="24"/></svg></div><div class="lw">ASCENSION</div></div>
 <div class="wrap" id="app"><div class="loading">Chargement…</div></div>
 <nav id="nav">
   <button data-tab="today" class="on"><span class="ic">◉</span>Aujourd'hui</button>
@@ -536,6 +544,8 @@ const LN=NATIVE&&window.capacitorLocalNotifications?capacitorLocalNotifications.
 const lsGet=()=>{try{return JSON.parse(localStorage.getItem(LS))}catch(e){return null}};
 const lsSet=()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}};
 function persist(){lsSet();clearTimeout(persist.t);persist.t=setTimeout(async()=>{try{if(Prefs)await Prefs.set({key:"state",value:JSON.stringify(S)})}catch(e){}syncWidget()},400);scheduleSoon()}
+const LAUNCH_T0=performance.now();
+function launchDone(now){const l=document.getElementById("launch");if(!l)return;const go=()=>{l.classList.add("out");setTimeout(()=>l.remove(),650)};if(now)return go();setTimeout(go,Math.max(0,3000-(performance.now()-LAUNCH_T0)))}
 async function init(){
   let s=null;
   try{if(Prefs){const r=await Prefs.get({key:"state"});if(r&&r.value)s=JSON.parse(r.value)}}catch(e){}
@@ -544,7 +554,7 @@ async function init(){
   try{const v=await fetch("version.json",{cache:"no-store"}).then(r=>r.json());myBuild=+v.build||0}catch(e){}
   if(lockMode()==="app")locked=true;applyDiscreet();
   if(S.timer&&timerLeft()<=0){const T=S.timer;S.timer=null;markDone([T.aid],T.day)}
-  render();scheduleSoon();checkUpdate(true);setupNotifActions();checkTrophies();autoBackup();syncWidget();loadCalendar(true);syncHealth(true);settleContract();setInterval(()=>{if(document.visibilityState==="visible")syncHealth(false)},5*60e3);
+  launchDone(!S.onboarded);render();scheduleSoon();checkUpdate(true);setupNotifActions();checkTrophies();autoBackup();syncWidget();loadCalendar(true);syncHealth(true);settleContract();setInterval(()=>{if(document.visibilityState==="visible")syncHealth(false)},5*60e3);
   if(S.timer)showTimer();
   else if(S.onboarded&&!S.tourDone&&!locked){S.tourDone=true;persist();tourI=0;closeModal();openModal(vTour())}
 }
