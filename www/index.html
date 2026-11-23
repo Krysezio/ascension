@@ -1251,7 +1251,7 @@ function agItems(k){
   if(mod("dates"))evTasks(k).forEach(e=>out.push({id:"e:"+e.key,kind:"task",src:"evt",ref:e.key,t:e.time,dur:30,title:e.e+" "+e.label,sub:"Date importante",done:!!L[e.key]}));
   (S.todos||[]).filter(t=>t.time&&(t.date===k||(t.done&&t.doneAt===k&&!t.date))).forEach(t=>out.push({id:"t:"+t.id,kind:"task",src:"todo",ref:t.id,t:t.time,dur:t.dur||30,title:t.t,sub:"Tâche",done:!!t.done,drag:true}));
   (S.appts||[]).filter(r=>r.date===k).forEach(r=>out.push({id:"r:"+r.id,kind:"rdv",src:"appt",ref:r.id,t:r.time,dur:r.dur||60,title:r.t,sub:(r.loc?r.loc+" · ":"")+(r.gid?"Ascension + Google":"Ascension"),drag:true}));
-  calOf(k).filter(c=>!c.allDay).forEach(c=>{const isT=S.cal.kind[c.id]==="task";
+  calOf(k).filter(c=>!c.allDay).forEach(c=>{const isT=gTask(c.id);
     out.push({id:"g:"+c.id+":"+c.b,kind:isT?"task":"rdv",src:"gcal",ref:c.id,t:hm(c.b),dur:Math.max(15,Math.round((c.e-c.b)/60000)),title:c.title,sub:(c.loc?c.loc+" · ":"")+"Google Agenda",done:isT&&!!L["gc:"+c.id],rec:c.rec,drag:!c.rec&&!c.split&&c.id!=null,cal:c})});
   out.sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:((b.core?1:0)-(a.core?1:0))||(b.dur-a.dur));
   // promesses sans heure précise : enchaînées à la suite à partir de l'heure du créneau
@@ -1288,6 +1288,7 @@ function vAgenda(){
   :`<div class="card"><div class="disp" style="font-size:16px">Agenda du téléphone</div>
    ${S.cal&&S.cal.on&&calState!=="denied"?`<div class="mut sm" style="margin:6px 0">✓ Connecté. Tes rendez-vous (Google Agenda compris) s'affichent dans ta journée et les promesses qui tombent pendant un rendez-vous sont signalées.</div><div class="row" style="gap:8px"><button class="btn" data-do="calrefresh">Actualiser</button><button class="btn" data-do="caloff">Déconnecter</button></div>`
    :`<div class="mut sm" style="margin:6px 0 10px">Affiche tes rendez-vous dans ta journée et repère les conflits.</div><button class="btn p" data-do="calon">Connecter mon agenda</button>`}
+   <div class="modr" style="margin-top:12px"><div><b>Mes événements Google = tâches à cocher</b><div class="mut sm">${S.cal.asTask!==false?"Ce que tu ajoutes dans Google Agenda apparaît comme une tâche à valider (+10 XP). Pour garder un événement en simple rendez-vous : touche-le dans la grille.":"Tes événements Google s'affichent comme des rendez-vous, sans case à cocher."}</div></div><button class="btn ${S.cal.asTask!==false?"p":""}" data-do="gtaskt">${S.cal.asTask!==false?"Activé":"Activer"}</button></div>
    <div class="modr" style="margin-top:12px"><div><b>Écrire dans Google Agenda</b><div class="mut sm">${S.cal.gw?"Les rendez-vous créés dans Ascension (case cochée) s'ajoutent à ton agenda Google, et les déplacer ici les déplace là-bas.":"Autorise Ascension à ajouter tes rendez-vous dans ton agenda Google et à déplacer ceux que tu glisses dans la grille."}</div></div><button class="btn ${S.cal.gw?"p":""}" data-do="gwt">${S.cal.gw?"Activé":"Autoriser"}</button></div></div>
   ${mod("prog")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Mes journées types</div>${vTypes()}</div>`:""}
   ${mod("dates")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Dates importantes</div>${vEvents()}</div>`:""}`}`;
@@ -1416,6 +1417,7 @@ async function loadCalendar(force){
         (calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",b:Math.max(e.begin,parse(k).getTime()),e:Math.min(e.end,dayEnd),loc:e.location||"",id:e.id,rec:!!e.recurring,split:e.begin<parse(k).getTime()||e.end>dayEnd})}});
     if(!ob&&(tab==="today"||tab==="agenda"))render()}catch(e){}
 }
+const gTask=id=>{if(id==null)return false;const v=S.cal.kind[id];return v?v==="task":S.cal.asTask!==false};
 const calOf=k=>{const g=new Set((S&&S.appts||[]).map(r=>String(r.gid||"")).filter(Boolean));return(calCache[k]||[]).filter(c=>!g.has(String(c.id)))};
 function clashOf(a,k){const t=sortTime(a,k),ms=atTime(k,t).getTime();return calOf(k).find(e=>!e.allDay&&e.b<=ms&&ms<e.e)||null}
 async function connectCalendar(){
@@ -1807,13 +1809,13 @@ function vToday(){
   ${S.jokers[k]?`<div class="card jk">🛡️ <b>Jour minimum activé</b> — une seule promesse cochée suffit aujourd'hui. <button class="btn" data-do="unjoker" style="margin-left:6px">Annuler</button></div>`:""}`;
   if(!S.goals.length)return h+`<div class="card empty mut">Aucun objectif. Va dans « Objectifs » pour en créer un.</div>`;
   h+=`<div class="seg"><button class="${S.view==="slot"?"on":""}" data-view="slot">Ma journée</button><button class="${S.view==="goal"?"on":""}" data-view="goal">Par objectif</button></div>`;
-  if(!D.length)h+=`<div class="card empty mut">${offMode(k)==="off"?"🌴 Jour off : rien à cocher aujourd'hui. Profite.":"Rien de prévu aujourd'hui. Jour de repos."}</div>`;
+  if(!D.length&&!calOf(k).some(c=>!c.allDay)&&!(S.appts||[]).some(r=>r.date===k))h+=`<div class="card empty mut">${offMode(k)==="off"?"🌴 Jour off : rien à cocher aujourd'hui. Profite.":"Rien de prévu aujourd'hui. Jour de repos."}</div>`;
   else if(S.view==="slot"){
     const items=D.map(a=>({t:sortTime(a,k),a})).concat(evTasks(k).map(e=>({t:e.time,e}))).concat(calOf(k).filter(c=>!c.allDay).map(c=>({t:hm(c.b),c}))).concat((S.appts||[]).filter(r=>r.date===k).map(r=>({t:r.time,c:{title:r.t,b:atTime(k,r.time).getTime(),e:atTime(k,r.time).getTime()+(r.dur||60)*60000,loc:r.loc||"",own:true}}))).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:((y.a&&y.a.core)-(x.a&&x.a.core)));
     {const ad=calOf(k).filter(c=>c.allDay);if(ad.length)h+=`<div class="mut sm" style="margin:-4px 0 10px">📅 Aujourd'hui : ${ad.map(c=>esc(c.title)).join(" · ")}</div>`}
     ["matin","midi","aprem","soir"].forEach(pp=>{const list=items.filter(x=>period(x.t)===pp);if(!list.filter(x=>!x.c).length&&!list.length)return;
-      const dn=list.filter(x=>x.a?L[x.a.id]:x.e?L[x.e.key]:false).length;list.cnt=list.filter(x=>!x.c).length;
-      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.cnt}</div></div>${list.map(x=>x.c?`<div class="tlr calr ${x.c.own?"rdv":""}"><span class="tt ev">${x.t}</span><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · ${x.c.own?"rendez-vous":"ton agenda"}</div></div></div>`:x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>${(()=>{const c=!L[x.a.id]&&clashOf(x.a,k);return c?`<div class="clash" data-move="${x.a.id}">⚠️ Pendant « ${esc(c.title)} » — appuie pour décaler</div>`:""})()}`
+      const gt=x=>x.c&&!x.c.own&&gTask(x.c.id);const dn=list.filter(x=>x.a?L[x.a.id]:x.e?L[x.e.key]:gt(x)?L["gc:"+x.c.id]:false).length;list.cnt=list.filter(x=>!x.c||gt(x)).length;
+      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.cnt}</div></div>${list.map(x=>x.c&&!x.c.own&&gTask(x.c.id)?`<div class="tlr"><span class="tt ev">${x.t}</span><div class="act ${L["gc:"+x.c.id]?"done":""}" data-evt="gc:${x.c.id}"><div class="ck"></div><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · Google Agenda</div></div><div class="xp">+10</div></div></div>`:x.c?`<div class="tlr calr ${x.c.own?"rdv":""}"><span class="tt ev">${x.t}</span><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · ${x.c.own?"rendez-vous":"ton agenda"}</div></div></div>`:x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>${(()=>{const c=!L[x.a.id]&&clashOf(x.a,k);return c?`<div class="clash" data-move="${x.a.id}">⚠️ Pendant « ${esc(c.title)} » — appuie pour décaler</div>`:""})()}`
         :`<div class="tlr"><span class="tt ev">${x.t}</span><div class="act ${L[x.e.key]?"done":""}" data-evt="${x.e.key}"><div class="ck"></div><div class="lbl">${x.e.e} ${esc(x.e.label)}<div class="det">Date importante</div></div><div class="xp">+10</div></div></div>`).join("")}</div>`});
     h+=`<div class="mut sm" style="text-align:center;margin:-4px 0 12px">Appuie sur une heure pour décaler une promesse · * = changé pour aujourd'hui</div>`;
   }else{
@@ -1968,7 +1970,8 @@ function run(cmd){
   if(c==="agsave"){agSave();return}
   if(c==="agdel"){agDelete();return}
   if(c==="agmv"){closeModal();moveSheet(id,agDay||k);return}
-  if(c==="gkind"){if(x3==="task")S.cal.kind[id]="task";else delete S.cal.kind[id];closeModal();persist();render();toast(x3==="task"?"Traité comme une tâche à cocher":"Traité comme un rendez-vous");return}
+  if(c==="gkind"){S.cal.kind[id]=x3==="task"?"task":"rdv";closeModal();persist();render();toast(x3==="task"?"Traité comme une tâche à cocher":"Traité comme un rendez-vous");return}
+  if(c==="gtaskt"){S.cal.asTask=S.cal.asTask===false;persist();render();toast(S.cal.asTask?"Événements Google = tâches à cocher":"Événements Google = rendez-vous");return}
   if(c==="gwt"){if(S.cal.gw){S.cal.gw=false;persist();render()}else gWriteOk().then(ok=>{render();if(ok)toast("Écriture dans Google Agenda autorisée")});return}
   if(c==="ritualok"){const i=document.getElementById("prioIn");S.prio=S.prio||{};if(i&&i.value.trim())S.prio[k]=i.value.trim();S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();render();toast("C'est parti. Une journée à la fois.");return}
   if(c==="ritualskip"){S.ritual=S.ritual||{};S.ritual[k]=true;closeModal();persist();return}
