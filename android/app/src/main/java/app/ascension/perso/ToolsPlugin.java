@@ -112,7 +112,7 @@ public class ToolsPlugin extends Plugin {
         ContentUris.appendId(b, end);
         String[] cols = { CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN, CalendarContract.Instances.END,
                 CalendarContract.Instances.ALL_DAY, CalendarContract.Instances.CALENDAR_DISPLAY_NAME, CalendarContract.Instances.EVENT_LOCATION,
-                CalendarContract.Instances.EVENT_ID, CalendarContract.Instances.RRULE };
+                CalendarContract.Instances.EVENT_ID, CalendarContract.Instances.RRULE, CalendarContract.Instances.DESCRIPTION };
         try (Cursor c = getContext().getContentResolver().query(b.build(), cols, null, null, CalendarContract.Instances.BEGIN + " ASC")) {
             while (c != null && c.moveToNext()) {
                 JSObject e = new JSObject();
@@ -124,7 +124,31 @@ public class ToolsPlugin extends Plugin {
                 e.put("location", c.getString(5));
                 e.put("id", c.getLong(6));
                 e.put("recurring", c.getString(7) != null && !c.getString(7).isEmpty());
+                String d = c.getString(8);
+                e.put("desc", d == null ? "" : (d.length() > 300 ? d.substring(0, 300) : d));
                 out.put(e);
+            }
+            // nombre d'invités (hors organisateur) par événement : un événement avec invités = rendez-vous
+            java.util.HashMap<Long, Integer> guests = new java.util.HashMap<>();
+            java.util.HashSet<Long> ids = new java.util.HashSet<>();
+            for (int i = 0; i < out.length(); i++) ids.add(out.getJSONObject(i).getLong("id"));
+            if (!ids.isEmpty()) {
+                StringBuilder in = new StringBuilder();
+                for (Long id : ids) { if (in.length() > 0) in.append(','); in.append(id); }
+                String[] ac = { CalendarContract.Attendees.EVENT_ID, CalendarContract.Attendees.ATTENDEE_RELATIONSHIP };
+                try (Cursor a = getContext().getContentResolver().query(CalendarContract.Attendees.CONTENT_URI, ac,
+                        CalendarContract.Attendees.EVENT_ID + " IN (" + in + ")", null, null)) {
+                    while (a != null && a.moveToNext()) {
+                        if (a.getInt(1) == CalendarContract.Attendees.RELATIONSHIP_ORGANIZER) continue;
+                        long eid = a.getLong(0);
+                        Integer n = guests.get(eid);
+                        guests.put(eid, n == null ? 1 : n + 1);
+                    }
+                } catch (Exception ignored) {}
+            }
+            for (int i = 0; i < out.length(); i++) {
+                Integer n = guests.get(out.getJSONObject(i).getLong("id"));
+                out.getJSONObject(i).put("guests", n == null ? 0 : n);
             }
             JSObject r = new JSObject();
             r.put("events", out);
@@ -182,7 +206,7 @@ public class ToolsPlugin extends Plugin {
             v.put(CalendarContract.Events.DTSTART, call.getLong("begin"));
             v.put(CalendarContract.Events.DTEND, call.getLong("end"));
             v.put(CalendarContract.Events.EVENT_LOCATION, call.getString("location", ""));
-            v.put(CalendarContract.Events.DESCRIPTION, "Créé depuis Ascension");
+            v.put(CalendarContract.Events.DESCRIPTION, call.getString("desc", "Créé depuis Ascension"));
             v.put(CalendarContract.Events.EVENT_TIMEZONE, java.util.TimeZone.getDefault().getID());
             Uri u = getContext().getContentResolver().insert(CalendarContract.Events.CONTENT_URI, v);
             if (u == null) throw new Exception("insertion refusée");
@@ -201,12 +225,44 @@ public class ToolsPlugin extends Plugin {
             if (call.hasOption("begin")) v.put(CalendarContract.Events.DTSTART, call.getLong("begin"));
             if (call.hasOption("end")) v.put(CalendarContract.Events.DTEND, call.getLong("end"));
             if (call.hasOption("location")) v.put(CalendarContract.Events.EVENT_LOCATION, call.getString("location"));
+            if (call.hasOption("desc")) v.put(CalendarContract.Events.DESCRIPTION, call.getString("desc"));
             Uri u = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, call.getLong("id"));
             int n = getContext().getContentResolver().update(u, v, null, null);
             JSObject r = new JSObject();
             r.put("updated", n);
             call.resolve(r);
         } catch (Exception e) { call.reject("Modification impossible : " + e.getMessage()); }
+    }
+
+    /** Relit des événements précis (ceux créés depuis Ascension) pour reprendre les changements faits dans Google Agenda. */
+    @PluginMethod
+    public void getEvents(PluginCall call) {
+        if (getPermissionState("calendar") != PermissionState.GRANTED) { call.reject("Accès à l'agenda non autorisé"); return; }
+        JSObject map = new JSObject();
+        try {
+            JSArray arr = call.getArray("ids");
+            StringBuilder in = new StringBuilder();
+            for (int i = 0; arr != null && i < arr.length(); i++) { if (in.length() > 0) in.append(','); in.append(arr.getLong(i)); }
+            if (in.length() > 0) {
+                String[] cols = { CalendarContract.Events._ID, CalendarContract.Events.TITLE, CalendarContract.Events.DTSTART, CalendarContract.Events.DTEND,
+                        CalendarContract.Events.EVENT_LOCATION, CalendarContract.Events.DELETED };
+                try (Cursor c = getContext().getContentResolver().query(CalendarContract.Events.CONTENT_URI, cols,
+                        CalendarContract.Events._ID + " IN (" + in + ")", null, null)) {
+                    while (c != null && c.moveToNext()) {
+                        JSObject e = new JSObject();
+                        e.put("title", c.getString(1));
+                        e.put("begin", c.getLong(2));
+                        e.put("end", c.getLong(3));
+                        e.put("location", c.getString(4));
+                        e.put("deleted", c.getInt(5) == 1);
+                        map.put(String.valueOf(c.getLong(0)), e);
+                    }
+                }
+            }
+            JSObject r = new JSObject();
+            r.put("events", map);
+            call.resolve(r);
+        } catch (Exception ex) { call.reject("Lecture impossible : " + ex.getMessage()); }
     }
 
     @PluginMethod

@@ -1185,13 +1185,13 @@ function opLabel(o){
 }
 async function applyOp(o){
   if(o.op==="add"){const it={kind:o.kind==="rdv"?"rdv":"task",t:String(o.title).trim(),date:o.date||"",time:o.time||"",dur:+o.dur||(o.kind==="rdv"?60:30),loc:o.loc||""};
-    if(it.kind==="task")S.todos.push({id:uid(),t:it.t,date:it.date,time:it.time,dur:it.dur,done:false});
+    if(it.kind==="task"){const x={id:uid(),t:it.t,date:it.date,time:it.time,dur:it.dur,done:false};S.todos.push(x);todoSync(x)}
     else{const r={id:uid(),t:it.t,date:it.date||today(),time:it.time||"09:00",dur:it.dur,loc:it.loc};S.appts.push(r);if(vcG)await gUpsert(r)}return}
   const f=refFind(o.ref);if(!f)return;const t=o.ref[0],k=today();
   if(t==="r"){const r=f.obj;if(o.op==="delete"){if(r.gid)gDelete(r.gid);S.appts=S.appts.filter(x=>x!==r);return}
     if(o.op==="move"){if(o.date)r.date=o.date;if(o.time)r.time=o.time}if(o.op==="edit"){if(o.title)r.t=o.title;if(o.loc)r.loc=o.loc;if(o.dur)r.dur=+o.dur}if(r.gid)await gUpsert(r);return}
-  if(t==="t"){const x=f.obj;if(o.op==="delete"){S.todos=S.todos.filter(y=>y!==x);return}if(o.op==="done"){if(!x.done){x.done=true;x.doneAt=k;(S.log[k]=S.log[k]||{})["td:"+x.id]={x:5,g:null}}return}
-    if(o.op==="move"){if(o.date)x.date=o.date;if(o.time)x.time=o.time}if(o.op==="edit"){if(o.title)x.t=o.title;if(o.dur)x.dur=+o.dur}return}
+  if(t==="t"){const x=f.obj;if(o.op==="delete"){if(x.gid)gDelete(x.gid);S.todos=S.todos.filter(y=>y!==x);return}if(o.op==="done"){if(!x.done){x.done=true;x.doneAt=k;(S.log[k]=S.log[k]||{})["td:"+x.id]={x:5,g:null}}return}
+    if(o.op==="move"){if(o.date)x.date=o.date;if(o.time)x.time=o.time}if(o.op==="edit"){if(o.title)x.t=o.title;if(o.dur)x.dur=+o.dur}todoSync(x);return}
   if(t==="a"){const a=f.obj;if(o.op==="move"&&o.time){applyMove(a.id,o.date||k,o.scope==="always"?"all":o.scope==="weekday"?"wd":"today",o.time)}
     if(o.op==="edit"&&o.title)a.label=o.title;if(o.op==="done"&&!(S.log[k]||{})[a.id])toggle(a.id);if(o.op==="delete")toast("Une promesse se supprime dans Objectifs");return}
   if(t==="g"){const c=f.obj;if(!await gWriteOk())return;
@@ -1249,10 +1249,10 @@ function agItems(k){
   if(S.actions.length&&k>=S.startDate&&diff(S.startDate,k)<S.length)due(k).forEach(a=>{const g=S.goals.find(x=>x.id===a.goalId),du=Math.round((durOf(a,k)||0)/60);
     out.push({id:"a:"+a.id,kind:"task",src:"act",ref:a.id,auto:!timeOf(a,k),t:sortTime(a,k),dur:Math.max(30,du||30),title:(g?g.emoji+" ":"")+a.label,sub:(a.core?"Socle · ":"")+detailOf(a,k),core:a.core,done:!!L[a.id],moved:!!(P[a.id]&&(P[a.id].time||P[a.id].add)),drag:true})});
   if(mod("dates"))evTasks(k).forEach(e=>out.push({id:"e:"+e.key,kind:"task",src:"evt",ref:e.key,t:e.time,dur:30,title:e.e+" "+e.label,sub:"Date importante",done:!!L[e.key]}));
-  (S.todos||[]).filter(t=>t.time&&(t.date===k||(t.done&&t.doneAt===k&&!t.date))).forEach(t=>out.push({id:"t:"+t.id,kind:"task",src:"todo",ref:t.id,t:t.time,dur:t.dur||30,title:t.t,sub:"Tâche",done:!!t.done,drag:true}));
+  (S.todos||[]).filter(t=>t.time&&(t.date===k||(t.done&&t.doneAt===k&&!t.date))).forEach(t=>out.push({id:"t:"+t.id,kind:"task",src:"todo",ref:t.id,t:t.time,dur:t.dur||30,title:t.t,sub:t.gid?"Tâche · Ascension + Google":"Tâche",done:!!t.done,drag:true}));
   (S.appts||[]).filter(r=>r.date===k).forEach(r=>out.push({id:"r:"+r.id,kind:"rdv",src:"appt",ref:r.id,t:r.time,dur:r.dur||60,title:r.t,sub:(r.loc?r.loc+" · ":"")+(r.gid?"Ascension + Google":"Ascension"),drag:true}));
-  calOf(k).filter(c=>!c.allDay).forEach(c=>{const isT=gTask(c.id);
-    out.push({id:"g:"+c.id+":"+c.b,kind:isT?"task":"rdv",src:"gcal",ref:c.id,t:hm(c.b),dur:Math.max(15,Math.round((c.e-c.b)/60000)),title:c.title,sub:(c.loc?c.loc+" · ":"")+"Google Agenda",done:isT&&!!L["gc:"+c.id],rec:c.rec,drag:!c.rec&&!c.split&&c.id!=null,cal:c})});
+  calOf(k).filter(c=>!c.allDay).forEach(c=>{const isT=gTask(c);
+    out.push({id:"g:"+c.id+":"+c.b,kind:isT?"task":"rdv",src:"gcal",ref:c.id,t:hm(c.b),dur:Math.max(15,Math.round((c.e-c.b)/60000)),title:stripMark(c.title),sub:(c.loc?c.loc+" · ":"")+"Google Agenda",done:isT&&!!L["gc:"+c.id],rec:c.rec,drag:!c.rec&&!c.split&&c.id!=null,cal:c})});
   out.sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:((b.core?1:0)-(a.core?1:0))||(b.dur-a.dur));
   // promesses sans heure précise : enchaînées à la suite à partir de l'heure du créneau
   out.forEach(i=>{if(!i.auto)return;const m=/(?:Debout|Au lit|Lever|Coucher)[^0-9]*(\d{1,2})\s*h\s*(\d{2})?/i.exec(i.title);if(m){i.t=z(+m[1])+":"+(m[2]||"00");i.auto=false;i.approx=true}});
@@ -1288,8 +1288,8 @@ function vAgenda(){
   :`<div class="card"><div class="disp" style="font-size:16px">Agenda du téléphone</div>
    ${S.cal&&S.cal.on&&calState!=="denied"?`<div class="mut sm" style="margin:6px 0">✓ Connecté. Tes rendez-vous (Google Agenda compris) s'affichent dans ta journée et les promesses qui tombent pendant un rendez-vous sont signalées.</div><div class="row" style="gap:8px"><button class="btn" data-do="calrefresh">Actualiser</button><button class="btn" data-do="caloff">Déconnecter</button></div>`
    :`<div class="mut sm" style="margin:6px 0 10px">Affiche tes rendez-vous dans ta journée et repère les conflits.</div><button class="btn p" data-do="calon">Connecter mon agenda</button>`}
-   <div class="modr" style="margin-top:12px"><div><b>Mes événements Google = tâches à cocher</b><div class="mut sm">${S.cal.asTask!==false?"Ce que tu ajoutes dans Google Agenda apparaît comme une tâche à valider (+10 XP). Pour garder un événement en simple rendez-vous : touche-le dans la grille.":"Tes événements Google s'affichent comme des rendez-vous, sans case à cocher."}</div></div><button class="btn ${S.cal.asTask!==false?"p":""}" data-do="gtaskt">${S.cal.asTask!==false?"Activé":"Activer"}</button></div>
-   <div class="modr" style="margin-top:12px"><div><b>Écrire dans Google Agenda</b><div class="mut sm">${S.cal.gw?"Les rendez-vous créés dans Ascension (case cochée) s'ajoutent à ton agenda Google, et les déplacer ici les déplace là-bas.":"Autorise Ascension à ajouter tes rendez-vous dans ton agenda Google et à déplacer ceux que tu glisses dans la grille."}</div></div><button class="btn ${S.cal.gw?"p":""}" data-do="gwt">${S.cal.gw?"Activé":"Autoriser"}</button></div></div>
+   <div class="modr" style="margin-top:12px"><div><b>Mes événements Google = tâches à cocher</b><div class="mut sm">${S.cal.asTask!==false?"Tri automatique dans ton agenda unique : un événement avec invités, un lieu ou un titre « RDV » = rendez-vous ; sinon, ou avec « ✅ » / « Tâche » en début de titre = tâche à cocher. Pour corriger un événement : touche-le dans la grille.":"Tes événements Google s'affichent comme des rendez-vous, sans case à cocher."}</div></div><button class="btn ${S.cal.asTask!==false?"p":""}" data-do="gtaskt">${S.cal.asTask!==false?"Activé":"Activer"}</button></div>
+   <div class="modr" style="margin-top:12px"><div><b>Écrire dans Google Agenda</b><div class="mut sm">${S.cal.gw?"Tes tâches à l'heure (marquées ✅) et tes rendez-vous créés dans Ascension vont dans ton agenda Google. Déplacer, renommer ou supprimer d'un côté se répercute de l'autre.":"Autorise Ascension à ajouter tes rendez-vous dans ton agenda Google et à déplacer ceux que tu glisses dans la grille."}</div></div><button class="btn ${S.cal.gw?"p":""}" data-do="gwt">${S.cal.gw?"Activé":"Autoriser"}</button></div></div>
   ${mod("prog")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Mes journées types</div>${vTypes()}</div>`:""}
   ${mod("dates")?`<div class="card"><div class="disp" style="font-size:16px;margin-bottom:8px">Dates importantes</div>${vEvents()}</div>`:""}`}`;
 }
@@ -1342,15 +1342,15 @@ async function agSave(){
   const date=o.date||agDay||today(),time=o.time||"",dur=o.dur||(o.kind==="rdv"?60:30),loc=(o.loc||"").trim();
   if(o.kind==="rdv"&&!time){toast("Un rendez-vous a besoin d'une heure");return}
   let oldGid=null;
-  if(o.ref&&o.src==="todo"&&o.kind!=="task")S.todos=S.todos.filter(x=>x.id!==o.ref);
+  if(o.ref&&o.src==="todo"&&o.kind!=="task"){const x=S.todos.find(y=>y.id===o.ref);if(x&&x.gid)gDelete(x.gid);S.todos=S.todos.filter(y=>y.id!==o.ref)}
   if(o.ref&&o.src==="appt"&&o.kind!=="rdv"){const r=S.appts.find(x=>x.id===o.ref);oldGid=r&&r.gid;S.appts=S.appts.filter(x=>x.id!==o.ref)}
-  if(o.kind==="task"){let x=o.ref&&o.src==="todo"?S.todos.find(y=>y.id===o.ref):null;if(!x){x={id:uid(),done:false};S.todos.push(x)}Object.assign(x,{t,date:date,time,dur});if(oldGid)gDelete(oldGid)}
+  if(o.kind==="task"){let x=o.ref&&o.src==="todo"?S.todos.find(y=>y.id===o.ref):null;if(!x){x={id:uid(),done:false};S.todos.push(x)}Object.assign(x,{t,date:date,time,dur});if(oldGid)gDelete(oldGid);todoSync(x)}
   else{let r=o.ref&&o.src==="appt"?S.appts.find(y=>y.id===o.ref):null;if(!r){r={id:uid()};S.appts.push(r)}Object.assign(r,{t,date,time,dur,loc});
     if(o.g)await gUpsert(r);else if(r.gid){gDelete(r.gid);r.gid=null}}
   if(time)agDay=date;closeModal();persist();render();toast(o.ref?"Modifié":o.kind==="rdv"?"Rendez-vous ajouté":"Tâche ajoutée");
 }
 function agDelete(){const o=agForm;if(!o||!o.ref)return;
-  if(o.src==="todo")S.todos=S.todos.filter(x=>x.id!==o.ref);
+  if(o.src==="todo"){const x=S.todos.find(y=>y.id===o.ref);if(x&&x.gid)gDelete(x.gid);S.todos=S.todos.filter(y=>y.id!==o.ref)}
   if(o.src==="appt"){const r=S.appts.find(x=>x.id===o.ref);if(r&&r.gid)gDelete(r.gid);S.appts=S.appts.filter(x=>x.id!==o.ref)}
   closeModal();persist();render();toast("Supprimé");
 }
@@ -1360,11 +1360,14 @@ async function gWriteOk(){
     if(st==="granted"){if(!S.cal.gw){S.cal.gw=true;persist()}return true}
     toast("Autorise l'agenda : Paramètres Android → Applis → Ascension → Autorisations");return false}catch(e){toast(String(e&&e.message||e));return false}
 }
-async function gUpsert(r){
-  if(!await gWriteOk())return;const b=atTime(r.date,r.time).getTime(),e=b+(r.dur||60)*60000;
-  try{if(r.gid){const u=await Tools.updateEvent({id:r.gid,title:r.t,begin:b,end:e,location:r.loc||""});if(u&&u.updated){calReload();return}}
-    const c=await Tools.createEvent({title:r.t,begin:b,end:e,location:r.loc||""});r.gid=c.id;persist();calReload()}catch(x){toast("Google Agenda : "+(x&&x.message||x))}
+async function gUpsert(r,kind){
+  if(!await gWriteOk())return;const task=kind==="task",b=atTime(r.date,r.time).getTime(),e=b+(r.dur||(task?30:60))*60000;
+  const o={title:(task?"✅ ":"")+r.t,begin:b,end:e,location:r.loc||"",desc:task?"Tâche à accomplir · Ascension [Ascension:tâche]":"Rendez-vous · Ascension [Ascension:rdv]"};
+  try{if(r.gid){const u=await Tools.updateEvent({id:r.gid,...o});if(u&&u.updated){calReload();return}}
+    const c=await Tools.createEvent(o);r.gid=c.id;persist();calReload()}catch(x){toast("Google Agenda : "+(x&&x.message||x))}
 }
+/* une tâche datée et à l'heure vit aussi dans Google Agenda quand l'écriture est autorisée */
+function todoSync(x){if(!x)return;if(x.date&&x.time&&S.cal.gw){gUpsert(x,"task")}else if(x.gid&&!x.time){gDelete(x.gid);x.gid=null}}
 function gDelete(id){if(Tools&&Tools.deleteEvent&&id)Tools.deleteEvent({id}).then(calReload).catch(()=>{})}
 function calReload(){if(S.cal&&S.cal.on)loadCalendar(true)}
 async function gMove(it,nt){
@@ -1374,7 +1377,7 @@ async function gMove(it,nt){
 function dropTo(it,nt){
   const k=agDay||today();
   if(it.src==="act"){moveSheet(it.ref,k,nt);return}
-  if(it.src==="todo"){const t=S.todos.find(x=>x.id===it.ref);if(t){t.time=nt;if(!t.date)t.date=k}persist();render();toast("Tâche déplacée à "+nt);return}
+  if(it.src==="todo"){const t=S.todos.find(x=>x.id===it.ref);if(t){t.time=nt;if(!t.date)t.date=k;todoSync(t)}persist();render();toast("Tâche déplacée à "+nt);return}
   if(it.src==="appt"){const r=S.appts.find(x=>x.id===it.ref);if(r){r.time=nt;persist();render();toast("Rendez-vous déplacé à "+nt);if(r.gid)gUpsert(r)}return}
   if(it.src==="gcal")gMove(it,nt);
 }
@@ -1409,16 +1412,36 @@ document.addEventListener("mouseup",lpEnd);
 let calCache={},calAt=0,calState="?";
 const hm=ms=>{const d=new Date(ms);return z(d.getHours())+":"+z(d.getMinutes())};
 async function loadCalendar(force){
-  if(!Tools||!S||!S.cal||!S.cal.on)return;if(!force&&Date.now()-calAt<10*60e3)return;calAt=Date.now();
+  if(!Tools||!S||!S.cal||!S.cal.on)return;if(!force&&Date.now()-calAt<45e3)return;calAt=Date.now();
   try{const st=await Tools.calendarState();calState=st.state;if(st.state!=="granted")return;
     const s0=parse(today()).getTime(),r=await Tools.calendarEvents({start:s0,end:s0+14*864e5});calCache={};
     (r.events||[]).forEach(e=>{if(e.allDay){const k=key(new Date(e.begin+12*3600e3));(calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",allDay:true,id:e.id});return}
       for(let d=new Date(e.begin);d.getTime()<e.end;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const k=key(d),dayEnd=parse(k).getTime()+864e5;
-        (calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",b:Math.max(e.begin,parse(k).getTime()),e:Math.min(e.end,dayEnd),loc:e.location||"",id:e.id,rec:!!e.recurring,split:e.begin<parse(k).getTime()||e.end>dayEnd})}});
+        (calCache[k]=calCache[k]||[]).push({title:e.title||"(sans titre)",b:Math.max(e.begin,parse(k).getTime()),e:Math.min(e.end,dayEnd),loc:e.location||"",id:e.id,desc:e.desc||"",guests:+e.guests||0,rec:!!e.recurring,split:e.begin<parse(k).getTime()||e.end>dayEnd})}});
+    await syncOwned();
+    if(S.cal.gw)(S.todos||[]).filter(t=>!t.done&&!t.gid&&t.time&&t.date>=today()).forEach(todoSync);
     if(!ob&&(tab==="today"||tab==="agenda"))render()}catch(e){}
 }
-const gTask=id=>{if(id==null)return false;const v=S.cal.kind[id];return v?v==="task":S.cal.asTask!==false};
-const calOf=k=>{const g=new Set((S&&S.appts||[]).map(r=>String(r.gid||"")).filter(Boolean));return(calCache[k]||[]).filter(c=>!g.has(String(c.id)))};
+/* reprise des changements faits dans Google Agenda sur les éléments créés depuis Ascension */
+async function syncOwned(){
+  if(!Tools||!Tools.getEvents)return;
+  const lim=addDays(today(),-1),items=[...(S.appts||[]).filter(r=>r.gid&&r.date>=lim).map(o=>["r",o]),...(S.todos||[]).filter(t=>t.gid&&(t.date||today())>=lim).map(o=>["t",o])];
+  if(!items.length)return;
+  let m={};try{m=(await Tools.getEvents({ids:items.map(([,o])=>+o.gid)})).events||{}}catch(e){return}
+  let ch=0;
+  items.forEach(([t,o])=>{const e=m[String(o.gid)];
+    if(!e||e.deleted){if(t==="r")S.appts=S.appts.filter(x=>x!==o);else{o.gid=null;if(!o.done)S.todos=S.todos.filter(x=>x!==o)}ch++;return}
+    const d=new Date(e.begin),date=key(d),time=z(d.getHours())+":"+z(d.getMinutes()),dur=Math.max(5,Math.round((e.end-e.begin)/60000)),title=stripMark(e.title||"");
+    if(o.date!==date||o.time!==time||(o.dur||0)!==dur||(title&&o.t!==title)||(t==="r"&&(e.location||"")!==(o.loc||""))){o.date=date;o.time=time;o.dur=dur;if(title)o.t=title;if(t==="r")o.loc=e.location||"";ch++}});
+  if(ch){persist();scheduleSoon();toast("🔄 "+ch+" changement"+(ch>1?"s":"")+" repris de Google Agenda")}
+}
+const T_RE=/^\s*(✅|✔️?|☑️?|\[t\]|t[aâ]che\b|todo\b|à faire\b)/i,R_RE=/^\s*(📅|rdv\b|rendez[- ]vous\b|réunion\b|meeting\b)/i;
+const stripMark=t=>String(t||"").replace(/^\s*(✅|✔️?|☑️?)\s*/,"");
+function gTask(c){if(!c||c.id==null)return false;const v=S.cal.kind[c.id];if(v)return v==="task";
+  const d=c.desc||"";if(d.includes("[Ascension:tâche]"))return true;if(d.includes("[Ascension:rdv]"))return false;
+  if(T_RE.test(c.title||""))return true;if(R_RE.test(c.title||""))return false;
+  if(S.cal.asTask===false)return false;return!(c.guests>0||(c.loc||"").trim())}
+const calOf=k=>{const g=new Set([...(S&&S.appts||[]),...(S&&S.todos||[])].map(r=>String(r.gid||"")).filter(Boolean));return(calCache[k]||[]).filter(c=>!g.has(String(c.id)))};
 function clashOf(a,k){const t=sortTime(a,k),ms=atTime(k,t).getTime();return calOf(k).find(e=>!e.allDay&&e.b<=ms&&ms<e.e)||null}
 async function connectCalendar(){
   if(!Tools){toast("Disponible dans l'appli Android");return}
@@ -1814,8 +1837,8 @@ function vToday(){
     const items=D.map(a=>({t:sortTime(a,k),a})).concat(evTasks(k).map(e=>({t:e.time,e}))).concat(calOf(k).filter(c=>!c.allDay).map(c=>({t:hm(c.b),c}))).concat((S.appts||[]).filter(r=>r.date===k).map(r=>({t:r.time,c:{title:r.t,b:atTime(k,r.time).getTime(),e:atTime(k,r.time).getTime()+(r.dur||60)*60000,loc:r.loc||"",own:true}}))).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:((y.a&&y.a.core)-(x.a&&x.a.core)));
     {const ad=calOf(k).filter(c=>c.allDay);if(ad.length)h+=`<div class="mut sm" style="margin:-4px 0 10px">📅 Aujourd'hui : ${ad.map(c=>esc(c.title)).join(" · ")}</div>`}
     ["matin","midi","aprem","soir"].forEach(pp=>{const list=items.filter(x=>period(x.t)===pp);if(!list.filter(x=>!x.c).length&&!list.length)return;
-      const gt=x=>x.c&&!x.c.own&&gTask(x.c.id);const dn=list.filter(x=>x.a?L[x.a.id]:x.e?L[x.e.key]:gt(x)?L["gc:"+x.c.id]:false).length;list.cnt=list.filter(x=>!x.c||gt(x)).length;
-      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.cnt}</div></div>${list.map(x=>x.c&&!x.c.own&&gTask(x.c.id)?`<div class="tlr"><span class="tt ev">${x.t}</span><div class="act ${L["gc:"+x.c.id]?"done":""}" data-evt="gc:${x.c.id}"><div class="ck"></div><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · Google Agenda</div></div><div class="xp">+10</div></div></div>`:x.c?`<div class="tlr calr ${x.c.own?"rdv":""}"><span class="tt ev">${x.t}</span><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · ${x.c.own?"rendez-vous":"ton agenda"}</div></div></div>`:x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>${(()=>{const c=!L[x.a.id]&&clashOf(x.a,k);return c?`<div class="clash" data-move="${x.a.id}">⚠️ Pendant « ${esc(c.title)} » — appuie pour décaler</div>`:""})()}`
+      const gt=x=>x.c&&!x.c.own&&gTask(x.c);const dn=list.filter(x=>x.a?L[x.a.id]:x.e?L[x.e.key]:gt(x)?L["gc:"+x.c.id]:false).length;list.cnt=list.filter(x=>!x.c||gt(x)).length;
+      h+=`<div class="card"><div class="goal-h"><div class="disp">${SLOTS[pp]}</div><div class="mut sm">${dn}/${list.cnt}</div></div>${list.map(x=>x.c&&!x.c.own&&gTask(x.c)?`<div class="tlr"><span class="tt ev">${x.t}</span><div class="act ${L["gc:"+x.c.id]?"done":""}" data-evt="gc:${x.c.id}"><div class="ck"></div><div class="lbl">✅ ${esc(stripMark(x.c.title))}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · Google Agenda</div></div><div class="xp">+10</div></div></div>`:x.c?`<div class="tlr calr ${x.c.own?"rdv":""}"><span class="tt ev">${x.t}</span><div class="lbl">📅 ${esc(x.c.title)}<div class="det">${x.t}–${hm(x.c.e)}${x.c.loc?" · "+esc(x.c.loc):""} · ${x.c.own?"rendez-vous":"ton agenda"}</div></div></div>`:x.a?`<div class="tlr"><button class="tt" data-move="${x.a.id}">${x.t}${planOf(k)[x.a.id]&&(planOf(k)[x.a.id].time||planOf(k)[x.a.id].add)?"*":""}</button>${actRow(x.a,k,L,true)}</div>${(()=>{const c=!L[x.a.id]&&clashOf(x.a,k);return c?`<div class="clash" data-move="${x.a.id}">⚠️ Pendant « ${esc(c.title)} » — appuie pour décaler</div>`:""})()}`
         :`<div class="tlr"><span class="tt ev">${x.t}</span><div class="act ${L[x.e.key]?"done":""}" data-evt="${x.e.key}"><div class="ck"></div><div class="lbl">${x.e.e} ${esc(x.e.label)}<div class="det">Date importante</div></div><div class="xp">+10</div></div></div>`).join("")}</div>`});
     h+=`<div class="mut sm" style="text-align:center;margin:-4px 0 12px">Appuie sur une heure pour décaler une promesse · * = changé pour aujourd'hui</div>`;
   }else{
@@ -2004,7 +2027,7 @@ function run(cmd){
   if(c==="univ"){S.profile=S.profile||{};S.profile.univ=id;persist();render();toast("Univers : "+univ().n+" · tu es "+gradeOf(totalXP()).name);return}
   if(c==="bweigh"){const v=num((document.getElementById("bW")||{}).value);if(v===null||v<20||v>400){toast("Saisis ton poids en kg");return}addWeight(v);persist();checkTrophies();render();toast("Pesée enregistrée");return}
   if(c==="tdadd"){const t=(document.getElementById("tdT").value||"").trim();if(!t){toast("Écris ta tâche");return}
-    const d=document.getElementById("tdD").value||"",hh=document.getElementById("tdH").value||"";S.todos=S.todos||[];S.todos.push({id:uid(),t,date:d,time:hh,done:false});todoDate=d;persist();render();
+    const d=document.getElementById("tdD").value||"",hh=document.getElementById("tdH").value||"";S.todos=S.todos||[];const nx={id:uid(),t,date:d,time:hh,done:false};S.todos.push(nx);todoSync(nx);todoDate=d;persist();render();
     setTimeout(()=>{const i=document.getElementById("tdT");i&&i.focus()},50);return}
   if(c==="unlock"){unlock(id);return}
   if(c==="lock"){setLock(id);return}
@@ -2081,7 +2104,7 @@ document.addEventListener("click",e=>{
   const nb=e.target.closest("nav button");if(nb){tab=nb.dataset.tab;render();scrollTo(0,0);return}
   const tg=e.target.closest("[data-tabgo]");if(tg){tab=tg.dataset.tabgo;render();scrollTo(0,0);return}
   const vw=e.target.closest("[data-view]");if(vw){S.view=vw.dataset.view;persist();render();return}
-  const tdl=e.target.closest("[data-tdel]");if(tdl){S.todos=(S.todos||[]).filter(t=>t.id!==tdl.dataset.tdel);persist();render();return}
+  const tdl=e.target.closest("[data-tdel]");if(tdl){const x=(S.todos||[]).find(t=>t.id===tdl.dataset.tdel);if(x&&x.gid)gDelete(x.gid);S.todos=(S.todos||[]).filter(t=>t.id!==tdl.dataset.tdel);persist();render();return}
   const tdo=e.target.closest("[data-todo]");if(tdo){const t=(S.todos||[]).find(x=>x.id===tdo.dataset.todo);if(t){const k=today(),L=S.log[k]||(S.log[k]={});t.done=!t.done;t.doneAt=t.done?k:null;
     if(t.done){L["td:"+t.id]={x:5,g:null};toast("✓ Fait")}else delete L["td:"+t.id];if(!Object.keys(L).length)delete S.log[k];persist();checkTrophies();render()}return}
   const gck=e.target.closest("[data-gck]");if(gck){if(Date.now()-suppressClick>700){const it=agCur[gck.dataset.gck];if(it)agCheck(it)}return}
