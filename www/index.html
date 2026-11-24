@@ -1214,6 +1214,7 @@ async function voiceApply(){
   persist();checkTrophies();await loadCalendar(true);render();toast(sel.length?sel.length+" action"+(sel.length>1?"s":"")+" appliquée"+(sel.length>1?"s":""):"Rien appliqué");vcOps=[];
 }
 async function voiceHandle(text){
+  if(aiKey&&/^\s*(je (veux|voudrais|souhaite|vais)|mon (nouvel )?objectif|objectif)\b.*\b(atteindre|perdre|gagner|arriver|réussir|objectif|devenir|lire|courir|signer|économiser|apprendre|prendre|lancer|d'ici)/i.test(text)&&!/\b(rdv|rendez-vous|réunion|demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche) à \d/i.test(text)){goalBuild(text);return}
   vcText=text;openModal(`<div class="mhead"><div><div class="day">🎙 Compris</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><div class="mut sm">${aiKey?"L'assistant analyse ta demande…":"Analyse…"}</div>`);
   let ops=[];vcVia="";
   if(aiKey){try{ops=await aiParse(text);vcVia="ai"}catch(e){aiState=String(e.message||e);toast("Assistant IA : "+aiState+" · analyse simple");vcVia="local"}}
@@ -1237,6 +1238,93 @@ function vAiCard(){
   ${aiKey?`<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" data-do="aitest">Tester</button><button class="btn d" data-confirm="aidel">Retirer la clé</button></div>
   <div class="mut sm" style="margin-top:8px">Ce mois-ci : ${n} commande${n>1?"s":""} · environ ${cost<0.01?"moins de 0,01":cost.toFixed(2).replace(".",",")} $${aiState?` · dernier souci : ${esc(aiState)}`:""}</div>`:""}
   <div class="mut sm" style="margin-top:8px">La clé reste uniquement sur ce téléphone : elle n'est ni dans la sauvegarde ni dans la copie de tes données.</div></div>`;
+}
+
+/* ---------- objectif à la voix : programme construit par l'IA ---------- */
+let gpDraft=null,gpText="";
+function loadMinutes(k){return due(k).reduce((s,a)=>s+Math.round((durOf(a,k)||0)/60||10),0)}
+function busyOf(k){
+  const b=[];due(k).forEach(a=>{const t=sortTime(a,k);if(t)b.push(t+"–"+fromMin(toMin(t)+Math.max(15,Math.round((durOf(a,k)||0)/60)||15))+" "+a.label)});
+  calOf(k).filter(c=>!c.allDay).forEach(c=>b.push(hm(c.b)+"–"+hm(c.e)+" "+c.title));
+  (S.appts||[]).filter(r=>r.date===k).forEach(r=>b.push(r.time+"–"+fromMin(toMin(r.time)+(r.dur||60))+" "+r.t));
+  (S.todos||[]).filter(t=>t.date===k&&t.time&&!t.done).forEach(t=>b.push(t.time+" "+t.t));
+  return b.sort().join(" ; ")||"libre";
+}
+function goalSystem(){
+  const p=S.profile||{},k=today(),wk=[...Array(7)].map((_,i)=>{const d=addDays(k,i+1);return`${WDF[parse(d).getDay()]} ${d}${isOff(d)?" (jour off "+offMode(d)+")":""} : charge ${loadMinutes(d)} min · occupé : ${busyOf(d)}`}).join("\n");
+  const budget={30:30,60:60,120:120,180:180}[p.time]||60;
+  return`Tu es le coach de l'appli Ascension (programme de ${S.length} jours, jour ${Math.min(S.length,diff(S.startDate,k)+1)}). Tu transformes un objectif dicté en français en programme concret intégré à l'emploi du temps existant.
+Profil : ${p.sex==="f"?"femme":"homme"}, niveau ${p.level||"mid"}, temps disponible visé ${budget} min/jour, lever ${p.wake||"non précisé"}, créneaux de rappel matin ${S.notif.times.matin} / midi ${S.notif.times.midi} / après-midi ${S.notif.times.aprem} / soir ${S.notif.times.soir}.
+Objectifs existants : ${S.goals.map(g=>g.emoji+" "+g.name+(g.target?" ("+g.target+")":"")).join(" ; ")||"aucun"}.
+Promesses existantes : ${S.actions.map(a=>a.label+" ["+(FREQ[a.freq]||a.freq)+(a.time?" "+a.time:"")+"]").join(" ; ")||"aucune"}.
+Les 7 prochains jours :
+${wk}
+
+Réponds UNIQUEMENT avec un objet JSON :
+{"goal":{"name":"…","emoji":"…","target":"objectif chiffré et daté","metric":{"n":"ce qu'on mesure","u":"unité"}},
+ "actions":[{"label":"…","steps":["phase 1","phase 2","phase 3"],"xp":10,"freq":"d"|"12345"|"135"|"246"|"06"|"1"|"3"|"0","time":"HH:MM","dur":minutes,"core":false}],
+ "notes":["…"],"merge":"id d'un objectif existant à compléter ou ''"}
+Règles :
+- 2 à 4 promesses concrètes, mesurables, progressives (steps = détail pour les phases Fondation / Construction / Domination, de plus en plus exigeant). label court (≤ 40 caractères).
+- Place chaque promesse à une heure "time" LIBRE (pas pendant un élément occupé), cohérente (sport pas juste après manger, travail de fond le matin…), après le lever.
+- Respecte le temps disponible : la charge ajoutée + l'existant ne doit pas exploser ; préfère 3×/semaine à tous les jours si c'est chargé.
+- Ne programme rien de professionnel ou d'argent les jours off "light" ou "off" (utilise freq "12345", "135"…) ; le sport/famille/esprit reste possible en "light".
+- core:true seulement pour UNE promesse vraiment indispensable, et seulement si moins de 5 socles existent (actuellement ${S.actions.filter(a=>a.core).length}).
+- xp : 10 standard, 15 effort important, 20 très exigeant.
+- notes : 1 à 3 remarques courtes (conflit évité, charge ajoutée par jour, conseil). En français, tutoiement.
+- Si l'objectif rejoint un objectif existant, garde-le séparé sauf s'il est quasi identique.`;
+}
+async function goalAI(text){
+  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"x-api-key":aiKey,"anthropic-version":"2023-06-01","content-type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:"claude-haiku-5-5",max_tokens:1600,system:goalSystem(),messages:[{role:"user",content:text}]})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const m=(j.error&&j.error.message)||("HTTP "+r.status);throw new Error(r.status===401?"Clé refusée":r.status===429?"Limite atteinte":/credit|balance/i.test(m)?"Crédit épuisé":m)}
+  S.ai=S.ai||{};const mo=today().slice(0,7);if(S.ai.m!==mo){S.ai.m=mo;S.ai.n=0;S.ai.tok=0}S.ai.n++;S.ai.tok+=((j.usage||{}).input_tokens||0)+5*((j.usage||{}).output_tokens||0);persist();
+  return jsonOf(((j.content||[]).find(c=>c.type==="text")||{}).text||"");
+}
+function goalStart(){
+  if(!aiKey){toast("Ajoute ta clé Claude (Progression → Assistant vocal) pour créer un objectif à la voix");return}
+  openModal(`<div class="mhead"><div><div class="day">🎯 Nouvel objectif</div><h2 class="disp" style="font-size:20px">Dis-moi ce que tu veux atteindre</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <div class="mut sm" style="margin-bottom:10px">Ex. « Je veux perdre 8 kilos d'ici fin février », « Lire 20 livres cette année », « Signer 3 nouveaux clients par mois ». Précise une échéance si tu peux.</div>
+  <button class="btn p" style="width:100%;padding:14px" data-do="gpvoice">🎙 Dicter mon objectif</button>
+  <label class="f">Ou l'écrire</label><textarea id="gpT" rows="3" placeholder="Mon objectif…"></textarea>
+  <button class="btn" style="width:100%;margin-top:8px" data-do="gptext">Construire mon programme</button>`);
+}
+async function goalVoice(){
+  if(!Tools||!Tools.listen){toast("La dictée fonctionne dans l'appli Android, écris ton objectif");return}
+  try{const t=((await Tools.listen({prompt:"Quel objectif veux-tu atteindre ?"}))||{}).text||"";if(t.trim())goalBuild(t)}catch(e){if(!/cancel/.test(String(e&&e.message||e)))toast(String(e&&e.message||e))}
+}
+async function goalBuild(text){
+  gpText=text;openModal(`<div class="mhead"><div><div class="day">🎯 Objectif</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><div class="mut sm">Je construis ton programme en tenant compte de tes créneaux, de ta charge et de tes jours off…</div>`);
+  try{const o=await goalAI(text);if(!o.goal||!(o.actions||[]).length)throw new Error("Programme vide");
+    o.actions=o.actions.slice(0,5).map(a=>({...a,on:true,freq:FREQ[a.freq]?a.freq:"d",time:/^\d{2}:\d{2}$/.test(a.time||"")?a.time:"",xp:[10,15,20].includes(+a.xp)?+a.xp:10,steps:Array.isArray(a.steps)&&a.steps.length===3?a.steps.map(String):null,dur:+a.dur||0}));
+    gpDraft=o;openModal(vGoalDraft())}catch(e){openModal(`<div class="mhead"><div><div class="day">🎯 Échec</div><h2 class="disp" style="font-size:19px">${esc(String(e.message||e))}</h2></div><button class="btn" data-do="closemodal">✕</button></div><button class="btn p" style="width:100%;padding:12px" data-do="goalnew">Réessayer</button>`)}
+}
+function gpLoad(){const o=gpDraft,days=[1,2,3,4,5,6,0];let mx=0;days.forEach(w=>{const m=o.actions.filter(a=>a.on&&dueByFreq(a.freq,w)).reduce((s,a)=>s+(a.dur||15),0);mx=Math.max(mx,m)});return mx}
+const dueByFreq=(f,w)=>f==="d"||String(f).includes(String(w));
+function vGoalDraft(){
+  const o=gpDraft,g=o.goal;
+  return`<div class="mhead"><div><div class="day">🎯 Ton programme</div><h2 class="disp" style="font-size:20px">${esc(g.emoji||"🎯")} ${esc(g.name)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <div class="mut sm">${esc(g.target||"")}${g.metric&&g.metric.n?` · suivi : ${esc(g.metric.n)}${g.metric.u?" ("+esc(g.metric.u)+")":""}`:""}</div>
+  ${(o.notes||[]).length?`<div class="card" style="margin:10px 0;padding:10px 12px">${o.notes.map(n=>`<div class="mut sm">💡 ${esc(n)}</div>`).join("")}</div>`:""}
+  ${o.actions.map((a,i)=>`<div class="card" style="margin:8px 0;padding:10px 12px;${a.on?"":"opacity:.45"}">
+    <label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" data-gpon="${i}" ${a.on?"checked":""} style="width:20px;height:20px;flex:none;margin-top:2px"><div style="min-width:0;flex:1"><b>${a.core?"⭐ ":""}${esc(a.label)}</b><div class="mut sm">${a.steps?esc(a.steps[0]):""}</div></div><span class="mut sm">+${a.xp}</span></label>
+    <div style="display:grid;grid-template-columns:1.3fr 1fr .8fr;gap:6px;margin-top:8px">
+      <select data-gpf="${i}" data-k="freq">${Object.entries(FREQ).map(([k2,v])=>`<option value="${k2}" ${a.freq===k2?"selected":""}>${v}</option>`).join("")}</select>
+      <input type="time" data-gpf="${i}" data-k="time" value="${a.time}">
+      <select data-gpf="${i}" data-k="dur">${[0,10,15,20,30,45,60,90].map(m=>`<option value="${m}" ${a.dur===m?"selected":""}>${m?m+" min":"—"}</option>`).join("")}</select></div></div>`).join("")}
+  <div class="mut sm" style="margin:6px 2px 10px">Jour le plus chargé : +${gpLoad()} min avec ce programme.</div>
+  <button class="btn p" style="width:100%;padding:14px" data-do="gpok">Ajouter à mon programme</button>
+  <button class="btn" style="width:100%;margin-top:8px" data-do="goalnew">Reformuler</button>`;
+}
+function goalCommit(){
+  const o=gpDraft;if(!o)return;const g=o.goal,acts=o.actions.filter(a=>a.on);if(!acts.length){toast("Garde au moins une promesse");return}
+  const key=/kilo|poids|maigr|muscl|sport|course|forme|abdo/i.test(g.name+g.target)?"body":/argent|chiffre|client|revenu|€|vente|business|entreprise/i.test(g.name+g.target)?"money":/lire|livre|apprend|formation/i.test(g.name+g.target)?"mind":"";
+  const id=uid();S.goals.push({id,key,name:g.name,emoji:g.emoji||"🎯",target:g.target||"",metric:{n:(g.metric||{}).n||"",u:(g.metric||{}).u||""},art:artFor(key==="body"?"torso":key==="money"?"chart":key==="mind"?"book":"peak",(S.profile||{}).sex)});
+  let cores=S.actions.filter(a=>a.core).length;
+  acts.forEach(a=>{const c=!!a.core&&cores<MAX_CORE;if(c)cores++;
+    S.actions.push({id:uid(),goalId:id,label:a.label,detail:a.steps?"":"",steps:a.steps,xp:a.xp,freq:a.freq,slot:a.time?period(a.time):guessSlot(a.label),time:a.time||"",core:c,...(a.dur&&!a.steps?{detail:a.dur+" min"}:{})})});
+  gpDraft=null;closeModal();persist();scheduleSoon();checkTrophies();render();toast("🎯 "+g.name+" ajouté · "+acts.length+" promesse"+(acts.length>1?"s":"")+" dans tes journées");
 }
 
 /* ---------- agenda en grille horaire ---------- */
@@ -1887,7 +1975,7 @@ function vGoals(){
         <button class="btn" data-do="addA:${go.id}">+ Promesse</button>
         <button class="btn d" data-confirm="delG:${go.id}">Supprimer l'objectif</button></div></div>`;
   });
-  return h+`<button class="btn p" style="width:100%;padding:13px" data-do="addG">+ Nouvel objectif</button>`;
+  return h+`<button class="btn p" style="width:100%;padding:14px" data-do="goalnew">🎙 Nouvel objectif à la voix</button><button class="btn" style="width:100%;padding:12px;margin-top:8px" data-do="addG">+ Créer un objectif à la main</button>`;
 }
 
 function spark(vals){if(vals.length<2)return"";const mn=Math.min(...vals),mx=Math.max(...vals),w=120,hh=32,r=mx-mn||1;
@@ -1981,6 +2069,10 @@ function run(cmd){
   if(cmd.startsWith("agck:")){const it=agCur[cmd.slice(5)];closeModal();if(it)agCheck(it);return}
   const[c,id,x3]=cmd.split(":");const k=today();
   if(c==="agadd"){agOpen(null);return}
+  if(c==="goalnew"){goalStart();return}
+  if(c==="gpvoice"){closeModal();goalVoice();return}
+  if(c==="gptext"){const v=(document.getElementById("gpT").value||"").trim();if(!v){toast("Écris ton objectif");return}goalBuild(v);return}
+  if(c==="gpok"){goalCommit();return}
   if(c==="voice"){closeModal();voiceStart();return}
   if(c==="vcall"){voiceApply();return}
   if(c==="vcedit"){const o=vcOps[+id];if(o){vcOps.splice(+id,1);const it={kind:o.kind==="rdv"?"rdv":"task",t:o.title,date:o.date||(o.kind==="rdv"?today():""),time:o.time||"",dur:+o.dur||60,loc:o.loc||""};openModal(agSheet({...it,g:it.kind==="rdv"&&!!S.cal.gw,voice:vcText,via:vcVia}))}return}
@@ -2119,6 +2211,8 @@ document.addEventListener("click",e=>{
   if(c){if(c.classList.contains("armed")){run(c.dataset.confirm)}else{c.classList.add("armed");c.dataset.txt=c.textContent;c.textContent="Confirmer ?";setTimeout(()=>{if(c.isConnected){c.classList.remove("armed");c.textContent=c.dataset.txt}},3000)}}
 });
 document.addEventListener("change",e=>{
+  const gpo=e.target.closest("[data-gpon]");if(gpo&&gpDraft){gpDraft.actions[+gpo.dataset.gpon].on=gpo.checked;openModal(vGoalDraft());return}
+  const gpf=e.target.closest("[data-gpf]");if(gpf&&gpDraft){const a=gpDraft.actions[+gpf.dataset.gpf],kk=gpf.dataset.k;a[kk]=kk==="dur"?+gpf.value:gpf.value;openModal(vGoalDraft());return}
   const t=e.target;
   if(t.dataset.g){const g=S.goals.find(x=>x.id===t.dataset.g);if(g){g[t.dataset.f]=t.value.trim();persist()}}
   if(t.dataset.gm){const g=S.goals.find(x=>x.id===t.dataset.gm);if(g){g.metric=g.metric||{n:"",u:""};g.metric[t.dataset.f]=t.value.trim();persist()}}
