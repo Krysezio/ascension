@@ -576,7 +576,7 @@ function buildNotifs(){
     const line=a=>{const d=detailOf(a,k);return"• "+(a.core?"⭐ ":"")+(a.trig?a.trig+" → ":"")+a.label+(d?" — "+d:"")};
     ["matin","midi","aprem","soir"].forEach(s=>{const list=D.filter(a=>(a.slot||"")===s&&!timeOf(a,k)).sort((a,b)=>b.core-a.core);
       if(list.length)push(atTime(k,slotT(k,s)),`${SLOTS[s]} · ${list.length} promesse${list.length>1?"s":""}`,list.map(line).join("\n"),list.map(a=>a.id))});
-    D.filter(a=>timeOf(a,k)).forEach(a=>push(atTime(k,timeOf(a,k)),"⏰ "+a.label,detailOf(a,k)||"C'est l'heure.",[a.id]));
+    D.filter(a=>timeOf(a,k)).forEach(a=>push(atTime(k,timeOf(a,k)),"⏰ "+labelOf(a,k),detailOf(a,k)||"C'est l'heure.",[a.id]));
     if(mod("dates"))evTasks(k).filter(e=>!L[e.key]).forEach(e=>push(atTime(k,e.time),e.e+" "+e.label,"Date importante · Ascension"));
     (S.appts||[]).filter(r=>r.date===k&&r.time&&!r.gid).forEach(r=>push(new Date(atTime(k,r.time).getTime()-15*60000),"📅 Dans 15 min : "+r.t,(r.loc?r.loc+" · ":"")+r.time+" · Ascension"));
     (S.todos||[]).filter(t=>!t.done&&t.date===k&&t.time).forEach(t=>push(atTime(k,t.time),"✅ "+t.t,"À faire · Ascension"));
@@ -883,7 +883,8 @@ const addMin=(t,m)=>{let[h,mi]=(t||"12:00").split(":").map(Number);let x=Math.ma
 let mvDay=null;
 function moveSheet(aid,k,preT){
   const a=S.actions.find(x=>x.id===aid);if(!a)return;mvDay=k;const t=preT||sortTime(a,k),w=parse(k).getDay();
-  openModal(`<div class="mhead"><div><div class="day">Décaler${k!==today()?" · "+fmt(k):""}</div><h2 class="disp" style="font-size:21px">${esc(a.label)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  openModal(`<div class="mhead"><div><div class="day">Décaler${k!==today()?" · "+fmt(k):""}</div><h2 class="disp" style="font-size:21px">${esc(labelOf(a,k))}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <button class="tbtn" style="margin:-4px 0 6px" data-do="rename:${a.id}">✏️ Renommer cette promesse</button>
   <label class="f">Nouvelle heure</label><input type="time" id="mvT" value="${t}">
   <div class="row" style="gap:8px;margin-top:8px"><button class="btn" data-do="mvadd:-30">−30 min</button><button class="btn" data-do="mvadd:30">+30 min</button><button class="btn" data-do="mvadd:60">+1 h</button></div>
   <div class="card" style="margin-top:14px"><b>Ce changement est…</b>
@@ -894,12 +895,23 @@ function moveSheet(aid,k,preT){
   ${k===today()?`<button class="btn" style="width:100%;margin-top:8px" ${a.core?"data-confirm":"data-do"}="mvpost:${aid}">⏭ Reporter à demain (exceptionnel)</button>${a.core?`<div class="mut sm" style="margin-top:6px;text-align:center">⚠️ C'est un socle : le reporter compte comme une journée ratée aujourd'hui.</div>`:""}`:""}
   ${(()=>{const c=clashOf(a,k);return c?`<button class="btn" style="width:100%;margin-top:8px" data-do="mvafter:${aid}:${hm(c.e).replace(":","")}">Après « ${esc(c.title)} » (${hm(c.e)})</button>`:""})()}`);
 }
+const HOUR_RE=/((?:^|\s)(?:à|a|vers|avant|dès|pour)\s+)(\d{1,2})\s*h\s*(\d{2})?/i;
+const fmtH=t=>{const[h,m]=t.split(":").map(Number);return h+" h"+(m?" "+z(m):"")};
+const relabel=(l,t)=>t&&HOUR_RE.test(l)?l.replace(HOUR_RE,(x,p)=>p+fmtH(t)):l;
+/* intitulé affiché : l'heure écrite dans le titre suit l'heure réellement programmée ce jour-là */
+const labelOf=(a,k)=>{const t=timeOf(a,k);return t?relabel(a.label,t):a.label};
+function renameSheet(aid){const a=S.actions.find(x=>x.id===aid);if(!a)return;
+  openModal(`<div class="mhead"><div><div class="day">Renommer la promesse</div><h2 class="disp" style="font-size:20px">${esc(a.label)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <label class="f">Nouvel intitulé</label><input id="rnT" value="${esc(a.label)}" maxlength="60">
+  <div class="mut sm" style="margin-top:6px">Si l'intitulé contient une heure (« Debout à 7 h »), elle se mettra à jour toute seule quand tu décales la promesse.</div>
+  <button class="btn p" style="width:100%;padding:13px;margin-top:12px" data-do="rnok:${a.id}">Enregistrer</button>`);
+  setTimeout(()=>{const i=document.getElementById("rnT");if(i){i.focus();i.select()}},80)}
 function applyMove(aid,k,scope,time){
   const a=S.actions.find(x=>x.id===aid);if(!a)return;const from=sortTime(a,k),w=parse(k).getDay();
   S.dayPlan=S.dayPlan||{};S.moves=S.moves||[];
   if(scope==="today"){const P=S.dayPlan[k]||(S.dayPlan[k]={});P[aid]={...(P[aid]||{}),time}}
   if(scope==="wd"){a.wt=a.wt||{};a.wt[w]=time;if(S.dayPlan[k]&&S.dayPlan[k][aid])delete S.dayPlan[k][aid].time}
-  if(scope==="all"){a.time=time;a.wt={};if(S.dayPlan[k]&&S.dayPlan[k][aid])delete S.dayPlan[k][aid].time}
+  if(scope==="all"){a.time=time;a.wt={};a.label=relabel(a.label,time);if(S.dayPlan[k]&&S.dayPlan[k][aid])delete S.dayPlan[k][aid].time}
   S.moves.push({d:k,aid,kind:scope,from,to:time});
   toast(scope==="today"?"Décalé pour aujourd'hui":scope==="wd"?`Journée type du ${WDL[w]} mise à jour`:"Routine mise à jour");
 }
@@ -1335,7 +1347,7 @@ const durLab=m=>m<60?m+" min":Math.floor(m/60)+" h"+(m%60?" "+z(m%60):"");
 function agItems(k){
   const L=S.log[k]||{},out=[],P=planOf(k);
   if(S.actions.length&&k>=S.startDate&&diff(S.startDate,k)<S.length)due(k).forEach(a=>{const g=S.goals.find(x=>x.id===a.goalId),du=Math.round((durOf(a,k)||0)/60);
-    out.push({id:"a:"+a.id,kind:"task",src:"act",ref:a.id,auto:!timeOf(a,k),t:sortTime(a,k),dur:Math.max(30,du||30),title:(g?g.emoji+" ":"")+a.label,sub:(a.core?"Socle · ":"")+detailOf(a,k),core:a.core,done:!!L[a.id],moved:!!(P[a.id]&&(P[a.id].time||P[a.id].add)),drag:true})});
+    out.push({id:"a:"+a.id,kind:"task",src:"act",ref:a.id,auto:!timeOf(a,k),t:sortTime(a,k),dur:Math.max(30,du||30),title:(g?g.emoji+" ":"")+labelOf(a,k),sub:(a.core?"Socle · ":"")+detailOf(a,k),core:a.core,done:!!L[a.id],moved:!!(P[a.id]&&(P[a.id].time||P[a.id].add)),drag:true})});
   if(mod("dates"))evTasks(k).forEach(e=>out.push({id:"e:"+e.key,kind:"task",src:"evt",ref:e.key,t:e.time,dur:30,title:e.e+" "+e.label,sub:"Date importante",done:!!L[e.key]}));
   (S.todos||[]).filter(t=>t.time&&(t.date===k||(t.done&&t.doneAt===k&&!t.date))).forEach(t=>out.push({id:"t:"+t.id,kind:"task",src:"todo",ref:t.id,t:t.time,dur:t.dur||30,title:t.t,sub:t.gid?"Tâche · Ascension + Google":"Tâche",done:!!t.done,drag:true}));
   (S.appts||[]).filter(r=>r.date===k).forEach(r=>out.push({id:"r:"+r.id,kind:"rdv",src:"appt",ref:r.id,t:r.time,dur:r.dur||60,title:r.t,sub:(r.loc?r.loc+" · ":"")+(r.gid?"Ascension + Google":"Ascension"),drag:true}));
@@ -1403,10 +1415,10 @@ function agOpen(it){
   if(it.src==="todo"){const t=S.todos.find(x=>x.id===it.ref);if(t)openModal(agSheet({kind:"task",src:"todo",ref:t.id,t:t.t,date:t.date||k,time:t.time,dur:t.dur||30,g:!!S.cal.gw}));return}
   if(it.src==="appt"){const r=S.appts.find(x=>x.id===it.ref);if(r)openModal(agSheet({kind:"rdv",src:"appt",ref:r.id,t:r.t,date:r.date,time:r.time,dur:r.dur,loc:r.loc,g:!!r.gid,gid:r.gid}));return}
   if(it.src==="act"){const a=S.actions.find(x=>x.id===it.ref);if(!a)return;const L=S.log[k]||{};
-    openModal(`<div class="mhead"><div><div class="day">Promesse${a.core?" · socle ⭐":""}</div><h2 class="disp" style="font-size:20px">${esc(a.label)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+    openModal(`<div class="mhead"><div><div class="day">Promesse${a.core?" · socle ⭐":""}</div><h2 class="disp" style="font-size:20px">${esc(labelOf(a,k))}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
     <div class="mut sm" style="margin-bottom:12px">${it.t}${detailOf(a,k)?" · "+esc(detailOf(a,k)):""}</div>
     ${k===today()?`<button class="btn p" style="width:100%;padding:13px" data-do="agck:${esc(it.id)}">${L[a.id]?"Décocher":"✓ C'est fait"}</button>`:""}
-    <button class="btn" style="width:100%;margin-top:8px" data-do="agmv:${a.id}">🕐 Changer l'heure</button>
+    <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" data-do="agmv:${a.id}">🕐 Changer l'heure</button><button class="btn" style="flex:1" data-do="rename:${a.id}">✏️ Renommer</button></div>
     <div class="mut sm" style="margin-top:10px">Astuce : dans la grille, garde le doigt appuyé sur la promesse puis glisse-la.</div>`);return}
   if(it.src==="gcal"){const c=it.cal,isT=it.kind==="task";
     openModal(`<div class="mhead"><div><div class="day">Google Agenda</div><h2 class="disp" style="font-size:20px">${esc(c.title)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
@@ -1879,7 +1891,7 @@ function updSync(){const s=document.getElementById("sync");if(s)s.textContent=(m
 function actRow(a,k,L,showGoal){
   const g=S.goals.find(x=>x.id===a.goalId),d=detailOf(a,k);
   return`<div class="act ${L[a.id]?"done":""}" data-toggle="${a.id}"><div class="ck"></div>
-   <div class="lbl">${a.core?`<span class="core">SOCLE</span>`:""}${showGoal&&g?esc(g.emoji)+" ":""}${esc(a.label)}${a.trig?`<div class="trig">↪ ${esc(a.trig)}</div>`:""}${d?`<div class="det">${esc(d)}</div>`:""}${!L[a.id]&&k===today()&&missedYesterday(k).some(x=>x.id===a.id)?`<div class="nm2 sm">⚠️ Raté hier : ne rate pas deux fois</div>`:""}</div>
+   <div class="lbl">${a.core?`<span class="core">SOCLE</span>`:""}${showGoal&&g?esc(g.emoji)+" ":""}${esc(labelOf(a,k))}${a.trig?`<div class="trig">↪ ${esc(a.trig)}</div>`:""}${d?`<div class="det">${esc(d)}</div>`:""}${!L[a.id]&&k===today()&&missedYesterday(k).some(x=>x.id===a.id)?`<div class="nm2 sm">⚠️ Raté hier : ne rate pas deux fois</div>`:""}</div>
    <div style="text-align:right">${a.time?`<div class="mut sm">${esc(a.time)}</div>`:""}<div class="xp">+${a.xp}</div>${!L[a.id]&&k===today()&&durOf(a,k)?`<button class="tbtn" data-timer="${a.id}">⏱ ${mmss(durOf(a,k))}</button>`:""}</div></div>`;
 }
 function vToday(){
@@ -2084,6 +2096,8 @@ function run(cmd){
   if(c==="agkind"){agRead();agForm.kind=id;if(id==="rdv"&&(!agForm.dur||agForm.dur<60))agForm.dur=60;openModal(agSheet(agForm));return}
   if(c==="agsave"){agSave();return}
   if(c==="agdel"){agDelete();return}
+  if(c==="rename"){renameSheet(id);return}
+  if(c==="rnok"){const a=S.actions.find(x=>x.id===id),v=(document.getElementById("rnT").value||"").trim();if(a&&v){a.label=v;persist();scheduleSoon();toast("Promesse renommée")}closeModal();render();return}
   if(c==="agmv"){closeModal();moveSheet(id,agDay||k);return}
   if(c==="gkind"){S.cal.kind[id]=x3==="task"?"task":"rdv";closeModal();persist();render();toast(x3==="task"?"Traité comme une tâche à cocher":"Traité comme un rendez-vous");return}
   if(c==="gtaskt"){S.cal.asTask=S.cal.asTask===false;persist();render();toast(S.cal.asTask?"Événements Google = tâches à cocher":"Événements Google = rendez-vous");return}
