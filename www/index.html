@@ -40,7 +40,7 @@ h1,h2,.disp{font-family:"Archivo Black",Inter,sans-serif;letter-spacing:.01em;ma
 .det{font-size:12.5px;color:var(--mut);margin-top:2px;text-decoration:none}
 .lbl{flex:1}
 .xp{font-size:12px;color:var(--acc2);font-weight:700}
-nav{position:fixed;left:0;right:0;bottom:0;background:rgba(11,11,12,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:var(--sab)}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:7;background:rgba(11,11,12,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:var(--sab)}
 nav button{flex:1;max-width:173px;background:none;border:0;color:var(--mut);padding:12px 0 14px;font:600 12px Inter;display:flex;flex-direction:column;align-items:center;gap:3px}
 nav button.on{color:var(--txt)} nav button.on .ic{color:var(--acc)}
 .ic{font-size:20px;line-height:1}
@@ -176,7 +176,7 @@ nav button{max-width:110px;font-size:11px}
 .calr{opacity:.75}.calr .lbl{padding:10px 4px;color:#cfc6b0}
 .calr.rdv{opacity:1}.calr.rdv .lbl{color:var(--acc2)}
 .agnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.agnav>div{text-align:center;text-transform:capitalize;flex:1;min-width:0}.agnav .tbtn{display:block;margin:4px auto 0}
-.grid{position:relative;margin:6px 0 10px 44px;border-left:1px solid var(--line)}
+.grid{position:relative;isolation:isolate;margin:6px 0 10px 44px;border-left:1px solid var(--line)}
 .gh{position:absolute;left:-44px;right:0;border-top:1px solid #1e1b15;height:0}.gh span{position:absolute;left:0;top:-7px;font-size:10.5px;color:var(--mut);width:38px;text-align:right}
 .gnow{position:absolute;left:-4px;right:0;border-top:2px solid #e05a4a;z-index:3;pointer-events:none}.gnow:before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:#e05a4a}
 .gb{position:absolute;border-radius:9px;padding:4px 6px;display:flex;gap:6px;align-items:flex-start;overflow:hidden;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2;transition:box-shadow .15s,transform .15s;touch-action:pan-y}
