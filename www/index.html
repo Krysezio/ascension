@@ -196,6 +196,11 @@ nav button{max-width:110px;font-size:11px}
 .qday .qt{font-family:Georgia,"Times New Roman",serif;font-size:22px;line-height:1.38;color:var(--txt);font-style:italic;animation:ifade .9s .1s both}
 .qday .qa{margin-top:14px;color:var(--acc2);font-weight:700;letter-spacing:.02em;animation:ifade .9s .5s both}
 .qline{font-family:Georgia,serif;font-style:italic;color:#d8cfb8;font-size:14.5px;line-height:1.45;margin:0 2px 14px;padding-left:12px;border-left:2px solid var(--acc)}.qline span{display:block;font-family:inherit;font-style:normal;font-size:12px;color:var(--mut);margin-top:3px}
+.lifebar{position:relative;overflow:hidden;margin:0 0 12px;padding:8px 12px;border:1px solid #3a321f;border-radius:12px;background:#0f0d09;font-size:13px;color:#d8cfb8;cursor:pointer}.lifebar b{color:var(--acc2)}
+.lifebar i{position:absolute;left:0;bottom:0;height:2px;background:linear-gradient(90deg,#a87f1f,#f1d27a)}.lifebar span{position:relative}
+.galg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.galg img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;cursor:pointer;border:1px solid #2a251a;background:#16130d}
+.tlink{color:var(--acc2);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.mchart{width:100%;height:auto;margin-top:8px;display:block}.mqc{border-color:#6b5520}
 .offc{border-color:#3d5a3a;background:linear-gradient(135deg,#121a10,#0f0e0b)}
 input[type=checkbox]{accent-color:var(--acc)}
 .gb.one{align-items:center;padding-top:2px;padding-bottom:2px}.gb.one .gtx{display:flex;gap:6px;align-items:baseline}.gb.one .gtx b{flex:0 1 auto;min-width:0}.gb.one .gtx small{flex:1 1 0;min-width:0}.gb.one .gck{margin-top:0}
@@ -586,7 +591,9 @@ function buildNotifs(){
     if(!(i===0&&valid(k))&&due(k).length){const core=due(k).filter(a=>a.core);
       push(atTime(k,S.notif.bilan),"🌙 Bilan du jour",core.length?"Ton socle : "+core.map(a=>a.label).join(", ")+". Coche ce que tu as tenu, puis 3 lignes au journal.":"Coche ce que tu as tenu, puis 3 lignes au journal.")}
     if(k.slice(8)==="01"&&(S.wealth.items||[]).length)push(atTime(k,"10:00"),"💰 Relevé de patrimoine du mois","Mets à jour tes montants dans Vision → Patrimoine (2 minutes).");
-    if(parse(k).getDay()===0&&metrics.length)push(atTime(k,S.notif.mesure),"📏 Mesure de la semaine",metrics.map(g=>g.metric.n).join(" · "));
+    {const dd=parse(k);S.goals.filter(g=>g.metric&&g.metric.n).forEach(g=>{const t=trackOf(g);if(t.f==="off")return;
+      const on=t.f==="d"||(t.f==="w"&&dd.getDay()===+t.wd)||(t.f==="m"&&dd.getDate()===Math.min(+t.md||1,28));
+      if(on&&(i>0||measDue(g,k)))push(atTime(k,t.t||"09:00"),"📋 "+g.metric.n,isWeight(g)?"C'est l'heure de la pesée : à jeun, même balance. Ouvre Ascension pour la noter.":"À renseigner dans Ascension : ça prend 5 secondes.")})}
     if(i===NOTIF_DAYS-1)push(atTime(k,"20:00"),"Ascension","Ouvre l'appli pour recharger tes rappels des deux prochaines semaines.");
   }
   return out;
@@ -1226,6 +1233,7 @@ async function voiceApply(){
   persist();checkTrophies();await loadCalendar(true);render();toast(sel.length?sel.length+" action"+(sel.length>1?"s":"")+" appliquée"+(sel.length>1?"s":""):"Rien appliqué");vcOps=[];
 }
 async function voiceHandle(text){
+  if(trackVoice(text))return;
   if(aiKey&&/^\s*(je (veux|voudrais|souhaite|vais)|mon (nouvel )?objectif|objectif)\b.*\b(atteindre|perdre|gagner|arriver|réussir|objectif|devenir|lire|courir|signer|économiser|apprendre|prendre|lancer|d'ici)/i.test(text)&&!/\b(rdv|rendez-vous|réunion|demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche) à \d/i.test(text)){goalBuild(text);return}
   vcText=text;openModal(`<div class="mhead"><div><div class="day">🎙 Compris</div><h2 class="disp" style="font-size:19px">« ${esc(text)} »</h2></div><button class="btn" data-do="closemodal">✕</button></div><div class="mut sm">${aiKey?"L'assistant analyse ta demande…":"Analyse…"}</div>`);
   let ops=[];vcVia="";
@@ -1251,6 +1259,145 @@ function vAiCard(){
   <div class="mut sm" style="margin-top:8px">Ce mois-ci : ${n} commande${n>1?"s":""} · environ ${cost<0.01?"moins de 0,01":cost.toFixed(2).replace(".",",")} $${aiState?` · dernier souci : ${esc(aiState)}`:""}</div>`:""}
   <div class="mut sm" style="margin-top:8px">La clé reste uniquement sur ce téléphone : elle n'est ni dans la sauvegarde ni dans la copie de tes données.</div></div>`;
 }
+
+
+/* ---------- compte à rebours de vie (tables INSEE 2025, espérance de vie à âge donné) ---------- */
+const LIFE={h:[[0,80.3],[10,70.8],[20,60.9],[30,51.3],[40,41.8],[50,32.6],[60,23.4],[70,15.4],[80,8.8],[90,4.4],[100,2.2]],
+  f:[[0,85.9],[10,76.3],[20,66.4],[30,56.6],[40,46.8],[50,37.2],[60,27.9],[70,19.0],[80,11.0],[90,5.2],[100,2.6]]};
+function lifeLeft(){const b=S.profile&&S.profile.birth;if(!b)return null;const age=(Date.now()-parse(b).getTime())/(365.2425*864e5);if(!(age>=0&&age<110))return null;
+  const T=LIFE[(S.profile.sex==="f")?"f":"h"];let e=T[T.length-1][1];for(let i=0;i<T.length-1;i++){const[a0,e0]=T[i],[a1,e1]=T[i+1];if(age>=a0&&age<=a1){e=e0+(e1-e0)*(age-a0)/(a1-a0);break}}
+  const days=Math.round(e*365.2425),lived=age/(age+e);return{age,years:Math.floor(e),days,lived}}
+function vLifeBar(){if(!S.profile||S.profile.lifeOff)return"";const L=lifeLeft();
+  if(!L)return`<div class="lifebar" data-do="lifeset">⏳ Combien de temps te reste-t-il ? <b>Renseigne ta date de naissance</b></div>`;
+  return`<div class="lifebar" data-do="lifeinfo"><span>⏳ Il te reste ≈ <b>${L.years} ans</b> · <b>${L.days.toLocaleString("fr-FR")}</b> jours</span><i style="width:${Math.round(L.lived*100)}%"></i></div>`}
+function vLifeInfo(){const L=lifeLeft();if(!L)return vLifeSet();
+  return`<div class="mhead"><div><div class="day">Le temps qu'il te reste</div><h2 class="disp" style="font-size:22px">≈ ${L.days.toLocaleString("fr-FR")} jours</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <div class="mut sm" style="line-height:1.5">Tu as ${Math.floor(L.age)} ans. En moyenne, ${S.profile.sex==="f"?"une femme":"un homme"} de ton âge en France vit encore <b style="color:var(--txt)">${L.years} ans</b> (tables de mortalité INSEE 2025, espérance de vie à âge donné).<br><br>C'est une moyenne nationale, pas une prédiction : sommeil, activité physique, tabac et niveau de vie la font varier de plusieurs années. Tu as déjà vécu ${Math.round(L.lived*100)} % de ce temps : fais compter chaque jour.</div>
+  <div class="bar" style="margin:14px 0"><i style="width:${Math.round(L.lived*100)}%"></i></div>
+  <button class="btn" style="width:100%" data-do="lifeset">Modifier ma date de naissance</button>`}
+function vLifeSet(){return`<div class="mhead"><div><div class="day">Compte à rebours</div><h2 class="disp" style="font-size:21px">Ta date de naissance</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <input type="date" id="lfB" value="${(S.profile||{}).birth||""}" max="${today()}">
+  <div class="segs" style="margin-top:10px"><button class="${(S.profile||{}).sex!=="f"?"on":""}" data-do="lfsex:h">Homme</button><button class="${(S.profile||{}).sex==="f"?"on":""}" data-do="lfsex:f">Femme</button></div>
+  <div class="mut sm" style="margin-top:6px">Elle reste sur ton téléphone. Elle sert uniquement à calculer ton espérance de vie restante.</div>
+  <button class="btn p" style="width:100%;padding:13px;margin-top:12px" data-do="lifeok">Enregistrer</button>`}
+
+/* ---------- galerie d'images pour les rêves (photos libres Pexels) ---------- */
+const GAL={villa:["🏝 Villas",[31817156,31817157,28449020,31817155,20200291]],car:["🏎 Voitures",[3802510,2896135,11913353,8105779,13146422]],
+  sea:["🛥 Yachts",[27628884,15883444,18681297]],travel:["✈️ Voyages",[7079776,35626716,12858512,1591375,16652213,9149362,14983522]],
+  home:["🏡 Maisons de famille",[9890979,4469146,259588,3555615,16787453]],watch:["⌚ Montres",[1134041,6813126]]};
+const pxu=(id,w)=>`https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${w||900}`;
+let galTab="villa",galFor=null;
+function vGallery(){return`<div class="mhead"><div><div class="day">Choisis une image</div><h2 class="disp" style="font-size:20px">Galerie</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <div class="segs">${Object.entries(GAL).map(([k,[n]])=>`<button class="${galTab===k?"on":""}" data-do="galtab:${k}">${n}</button>`).join("")}</div>
+  <div class="galg">${GAL[galTab][1].map(id=>`<img src="${pxu(id,400)}" loading="lazy" data-do="galpick:${id}" onerror="this.remove()" alt="">`).join("")}</div>
+  <div class="mut sm" style="margin-top:8px">Photos libres de droits (Pexels). Il faut une connexion internet pour les afficher. Tu peux aussi mettre ta propre photo.</div>`}
+
+/* ---------- saisies guidées : la question arrive, tu réponds, tu passes à la suite ---------- */
+const TRK_F={d:"Chaque jour",w:"Chaque semaine",m:"Chaque mois",off:"Jamais (manuel)"};
+function trackOf(g){if(g.track)return g.track;const n=((g.metric||{}).n||"")+" "+((g.metric||{}).u||""),w=/poids/i.test(n);return{f:w?"d":/mois|mensuel|patrimoine/i.test(n)?"m":"w",wd:1,md:1,t:w?"07:00":"09:00"}}
+const isWeight=g=>/poids|pes/i.test(((g.metric||{}).n||"")+" "+g.name);
+function measDue(g,k){if(!g.metric||!g.metric.n)return false;const t=trackOf(g);if(t.f==="off")return false;const m=S.measures[g.id]||[],last=m.length?m[m.length-1].d:null,d=parse(k);
+  if(t.f==="d")return last!==k;
+  if(t.f==="w"){const back=(d.getDay()-(+t.wd)+7)%7,from=addDays(k,-back);return!last||last<from}
+  if(t.f==="m"){const md=Math.min(+t.md||1,28),cur=k.slice(0,8)+z(md),from=k>=cur?cur:key(new Date(d.getFullYear(),d.getMonth()-1,md));return!last||last<from}
+  return false}
+function measuresDue(){const k=today();return S.goals.filter(g=>measDue(g,k))}
+const MEAS_TIP={w:"Pèse-toi le matin, à jeun, après être passé aux toilettes, sur la même balance. Regarde la tendance sur 7 jours, pas le chiffre du jour : l'eau fait varier de ±1 kg.",
+  money:"Note le même indicateur à chaque fois (CA encaissé ou facturé, HT) : c'est la régularité qui rend la courbe utile."};
+let mqQ=[],mqI=0;
+function measQueueStart(force){const k=today();S.mq=S.mq||{};mqQ=measuresDue().filter(g=>force||S.mq[g.id]!==k);mqI=0;if(mqQ.length)openModal(vMeasQ());return mqQ.length>0}
+function vMeasQ(){const g=mqQ[mqI];if(!g)return"";const m=S.measures[g.id]||[],last=m[m.length-1],u=g.metric.u||"",t=trackOf(g);
+  return`<div class="mhead"><div><div class="day">📋 À renseigner · ${mqI+1}/${mqQ.length}</div><h2 class="disp" style="font-size:21px">${esc(g.emoji)} ${esc(g.metric.n)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <div class="mut sm">${TRK_F[t.f]}${last?` · dernière valeur : <b style="color:var(--txt)">${fnum(last.v)} ${esc(u)}</b> le ${fmt(last.d)}`:" · première saisie"}</div>
+  <div class="row" style="gap:8px;margin-top:12px"><input id="mqV" inputmode="decimal" placeholder="${esc(g.metric.n)}${u?" ("+esc(u)+")":""}" style="flex:1;font-size:20px;padding:14px"></div>
+  ${isWeight(g)?`<div class="mut sm" style="margin-top:8px">💡 ${MEAS_TIP.w}</div>`:g.key==="money"?`<div class="mut sm" style="margin-top:8px">💡 ${MEAS_TIP.money}</div>`:""}
+  <button class="btn p" style="width:100%;padding:14px;margin-top:12px" data-do="mqok">${mqI<mqQ.length-1?"Valider et suivant":"Valider"}</button>
+  <button class="btn" style="width:100%;margin-top:8px" data-do="mqskip">Plus tard (reste en haut d'Aujourd'hui)</button>`}
+function saveMeasure(id,v){const k=today(),m=S.measures[id]||(S.measures[id]=[]),last=m[m.length-1];if(last&&last.d===k)last.v=v;else m.push({d:k,v});
+  const g=S.goals.find(x=>x.id===id);if(g&&isWeight(g)&&mod("body")){S.body=S.body||{log:[]};const L=S.body.log||(S.body.log=[]),l=L[L.length-1];if(l&&l.d===k)l.v=v;else L.push({d:k,v})}}
+function vMeasCard(){const md=measuresDue();if(!md.length)return"";
+  return`<div class="card mqc"><b>📋 À renseigner</b>${md.map(g=>`<div class="row" style="gap:8px;margin-top:8px;align-items:center"><span style="flex:1;min-width:0">${esc(g.emoji)} ${esc(g.metric.n)}</span><input data-mv="${g.id}" inputmode="decimal" placeholder="${esc(g.metric.u||"valeur")}" style="width:96px"><button class="btn p" data-do="meas:${g.id}">OK</button></div>`).join("")}</div>`}
+function vTrackEdit(go){const t=trackOf(go);return`<div style="display:grid;grid-template-columns:1.4fr 1fr .9fr;gap:6px;margin-top:6px">
+  <select data-trk="${go.id}" data-k="f">${Object.entries(TRK_F).map(([k,v])=>`<option value="${k}" ${t.f===k?"selected":""}>${v}</option>`).join("")}</select>
+  ${t.f==="w"?`<select data-trk="${go.id}" data-k="wd">${[1,2,3,4,5,6,0].map(d=>`<option value="${d}" ${+t.wd===d?"selected":""}>${WDF[d]}</option>`).join("")}</select>`:t.f==="m"?`<select data-trk="${go.id}" data-k="md">${[...Array(28)].map((_,i)=>`<option value="${i+1}" ${+t.md===i+1?"selected":""}>le ${i+1}</option>`).join("")}</select>`:"<span></span>"}
+  <input type="time" data-trk="${go.id}" data-k="t" value="${t.t||"09:00"}"></div>
+  <label class="f">Cible (facultatif, pour la projection)</label><input data-trk="${go.id}" data-k="goal" inputmode="decimal" value="${t.goal??""}" placeholder="${isWeight(go)?"Ex. 75":"Ex. 10000"}">`}
+/* fréquence de saisie à la voix, sans IA */
+function trackVoice(text){const s=text.toLowerCase();const f=/tous les jours|chaque jour|quotidien|journalier/.test(s)?"d":/semaine|hebdo/.test(s)?"w":/mois|mensuel/.test(s)?"m":null;
+  if(!f||!/(pes|poids|chiffre d'affaires|\bca\b|mesure|suivi|saisi)/.test(s))return false;
+  const g=S.goals.find(x=>x.metric&&x.metric.n&&((/pes|poids/.test(s)&&isWeight(x))||(/chiffre|\bca\b/.test(s)&&/ca|chiffre|€|euro/i.test(x.metric.n+x.metric.u))))||null;
+  if(!g){toast("Je n'ai pas trouvé la mesure concernée : règle-la dans Objectifs");return true}
+  g.track={...trackOf(g),f};persist();scheduleSoon();render();toast(`${g.metric.n} : saisie ${TRK_F[f].toLowerCase()}`);return true}
+
+/* ---------- courbe + projection ---------- */
+function trendOf(m){const p=m.slice(-21);if(p.length<2)return null;const x0=parse(p[0].d).getTime()/864e5,xs=p.map(q=>parse(q.d).getTime()/864e5-x0),ys=p.map(q=>q.v),n=p.length,
+  mx=xs.reduce((a,b)=>a+b)/n,my=ys.reduce((a,b)=>a+b)/n;let num2=0,den=0;xs.forEach((x,i)=>{num2+=(x-mx)*(ys[i]-my);den+=(x-mx)**2});if(!den)return null;const b=num2/den;return{slope:b,a:my-b*mx,x0}}
+function projOf(g){const m=S.measures[g.id]||[],t=trackOf(g),tg=num(t.goal!=null&&t.goal!==""?t.goal:(isWeight(g)&&S.body&&S.body.target)||"");if(tg===null||m.length<2)return null;
+  const tr=trendOf(m),last=m[m.length-1].v;if(!tr)return null;if(Math.abs(last-tg)<1e-9)return{done:true,tg};
+  if(tr.slope===0||Math.sign(tg-last)!==Math.sign(tr.slope))return{wrong:true,tg};const days=(tg-last)/tr.slope;if(days>3650)return{far:true,tg};
+  const d=new Date();d.setDate(d.getDate()+Math.round(days));return{date:d,tg}}
+function chartOf(g){const m=(S.measures[g.id]||[]).slice(-30);if(m.length<2)return"";const t=trackOf(g),tg=num(t.goal!=null&&t.goal!==""?t.goal:(isWeight(g)&&S.body&&S.body.target)||"");
+  const vs=m.map(x=>x.v).concat(tg!==null?[tg]:[]),mn=Math.min(...vs),mx=Math.max(...vs),r=mx-mn||1,W=300,H=90,X=i=>6+i*(W-12)/(m.length-1),Y=v=>H-8-(v-mn)/r*(H-16);
+  return`<svg viewBox="0 0 ${W} ${H}" class="mchart">${tg!==null?`<line x1="0" x2="${W}" y1="${Y(tg)}" y2="${Y(tg)}" stroke="#6f8f5a" stroke-dasharray="4 4"/>`:""}
+  <polyline fill="none" stroke="url(#gr2)" stroke-width="2.5" points="${m.map((x,i)=>X(i)+","+Y(x.v)).join(" ")}"/>${m.map((x,i)=>`<circle cx="${X(i)}" cy="${Y(x.v)}" r="2.2" fill="#e9c766"/>`).join("")}
+  <defs><linearGradient id="gr2"><stop offset="0" stop-color="#a87f1f"/><stop offset="1" stop-color="#f1d27a"/></linearGradient></defs></svg>`}
+function projText(g){const p=projOf(g),u=g.metric.u||"";if(!p)return"";if(p.done)return"🎯 Cible atteinte !";
+  if(p.wrong)return`⚠️ La tendance s'éloigne de ta cible (${fnum(p.tg)} ${esc(u)}).`;if(p.far)return"À ce rythme, la cible est très lointaine : accélère.";
+  return`À ce rythme : <b style="color:var(--acc2)">${fnum(p.tg)} ${esc(u)}</b> vers le ${p.date.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}.`}
+
+/* ---------- astuces ---------- */
+const TIPS=["Pas de téléphone dans la chambre : un vrai réveil, et tu gagnes 30 minutes de sommeil et une première heure sans notifications.",
+"Coupe les écrans 1 h avant de dormir : la lumière bleue retarde l'endormissement.",
+"Garde la première heure du matin pour toi : pas de mails ni de réseaux avant d'avoir fait ta tâche la plus importante.",
+"Décide la veille au soir des 3 priorités du lendemain. Le matin, tu exécutes, tu ne réfléchis plus.",
+"Mange la grenouille : commence par la tâche que tu repousses le plus. Le reste de la journée paraît facile.",
+"Bloque ton travail profond dans l'agenda comme un rendez-vous client : il est non négociable.",
+"Règle des 2 minutes : si ça prend moins de 2 minutes, fais-le tout de suite.",
+"Regroupe les tâches similaires (appels, mails, admin) en un seul créneau : chaque changement de tâche coûte de la concentration.",
+"Consulte tes mails à heures fixes (par exemple 11 h et 16 h), pas en continu.",
+"Mets ton téléphone dans une autre pièce pendant le travail profond : le simple fait de le voir réduit ta concentration.",
+"Dis non par défaut. Chaque oui est un non à autre chose.",
+"Délègue tout ce qu'une autre personne peut faire à 80 % aussi bien que toi.",
+"Revue hebdomadaire de 20 minutes le dimanche : ce qui a marché, ce qui a coincé, les 3 priorités de la semaine.",
+"Fixe une heure de fin de journée et tiens-la : la contrainte de temps rend plus efficace.",
+"Prépare tes affaires de sport la veille : moins de décisions le matin, moins d'excuses.",
+"Bois un grand verre d'eau au réveil, avant le café.",
+"Marche 10 minutes après le déjeuner : meilleure digestion, moins de coup de barre.",
+"Couche-toi et lève-toi à heure fixe, même le week-end : c'est la régularité qui fait la qualité du sommeil.",
+"Le soir, écris 3 victoires de la journée. Ton cerveau retient ce que tu répètes.",
+"Note chaque idée immédiatement (dictée vocale). Une idée non notée est perdue.",
+"Pour une grosse tâche, définis seulement la prochaine action concrète. Le flou fait procrastiner.",
+"Travaille par blocs de 50 minutes, puis 10 minutes de vraie pause, loin de l'écran.",
+"Avant un rendez-vous important, écris l'objectif en une phrase : qu'est-ce qui doit être décidé en sortant ?",
+"Relance tes prospects au bon moment : la plupart des ventes se font après plusieurs relances.",
+"Suis 3 chiffres clés de ton activité chaque semaine, pas 15. Ce qui se mesure s'améliore.",
+"Facture le jour même où la prestation est terminée : la trésorerie se gagne à la facturation.",
+"Paie-toi en premier : mets de côté un pourcentage fixe dès que l'argent rentre.",
+"Avant tout achat important, attends 48 h. Si l'envie est toujours là, c'est un vrai besoin.",
+"Entoure-toi de gens qui ont déjà fait ce que tu veux faire. Un déjeuner avec eux vaut un livre.",
+"Lis 10 pages par jour : 15 livres par an.",
+"Une tâche importante mais pas urgente par jour : c'est là que se construit l'avenir.",
+"Prévois des marges de 25 % dans ton planning : l'imprévu arrive toujours.",
+"Range ton bureau en fin de journée : tu démarres le lendemain l'esprit clair.",
+"Le week-end, coupe vraiment : un cerveau reposé prend de meilleures décisions le lundi.",
+"Fais du sport le matin si tu peux : c'est le créneau que les imprévus volent le moins.",
+"Prépare tes repas de la semaine le dimanche : moins de grignotage, plus de temps en semaine.",
+"Quand tu es bloqué, change de lieu ou va marcher 15 minutes.",
+"Écris tes objectifs à la main et relis-les chaque matin.",
+"Ne compare ton chapitre 1 au chapitre 20 de personne.",
+"Demande-toi chaque soir : qu'ai-je fait aujourd'hui qui me rapproche de mon objectif à 1 an ?",
+"Automatise ce qui se répète : virements, relances, modèles de mails.",
+"Un « non » client est une information : demande toujours pourquoi.",
+"Coupe les notifications de toutes les applis sauf appels et messages des proches.",
+"Fixe un budget temps aux réseaux sociaux (20 min par jour) avec une minuterie.",
+"Planifie les moments en famille dans l'agenda : ce qui n'est pas planifié est sacrifié.",
+"Réponds aux messages importants par écrit et à froid, jamais à chaud.",
+"Le matin, 5 minutes de respiration ou de calme avant d'ouvrir le téléphone.",
+"Chaque trimestre, fais le tri : arrête un projet, une habitude ou un engagement qui ne sert plus.",
+"Garde une liste « en attente » : tout ce que tu attends des autres, avec la date de relance.",
+"Célèbre les petites victoires : la motivation se nourrit de progrès visibles."];
+function vTip(){const t=TIPS[Math.floor(Math.random()*TIPS.length)];return`<div class="mhead"><div><div class="day">💡 Astuce</div><h2 class="disp" style="font-size:19px;line-height:1.35">${esc(t)}</h2></div><button class="btn" data-do="closemodal">✕</button></div>
+  <button class="btn p" style="width:100%;padding:13px;margin-top:6px" data-do="tip">Une autre</button>`}
 
 /* ---------- objectif à la voix : programme construit par l'IA ---------- */
 let gpDraft=null,gpText="";
@@ -1582,7 +1729,7 @@ function vVision(){
     <label class="f">Pourquoi c'est important</label><input id="drW" value="${esc(e.why||"")}" placeholder="Ex. Lui rendre tout ce qu'elle m'a donné">
     <label class="f">Illustration</label><select id="drA">${Object.entries(ART_NAMES).map(([k,n])=>`<option value="${k}" ${(e.art||"villa")===k?"selected":""}>${n}</option>`).join("")}</select>
     <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn p" data-do="dok">${dreamEdit?"Enregistrer":"Ajouter"}</button>
-    ${dreamEdit?`<label class="btn" style="cursor:pointer">📷 Ma photo<input type="file" accept="image/*" data-dphoto="${dreamEdit}" hidden></label><button class="btn" data-do="dcancel">Annuler</button><button class="btn d" data-confirm="ddel:${dreamEdit}">Supprimer</button>`:`<span class="mut sm">Ajoute ta photo après l'enregistrement.</span>`}</div></div>`;
+    ${dreamEdit?`<button class="btn" data-do="gal:${dreamEdit}">🖼 Galerie</button><label class="btn" style="cursor:pointer">📷 Ma photo<input type="file" accept="image/*" data-dphoto="${dreamEdit}" hidden></label><button class="btn" data-do="dcancel">Annuler</button><button class="btn d" data-confirm="ddel:${dreamEdit}">Supprimer</button>`:`<span class="mut sm">Ajoute ta photo après l'enregistrement.</span>`}</div></div>`;
   return h;
 }
 
@@ -1855,7 +2002,6 @@ function valid(k){
 function streak(){let d=today(),n=0;if(!valid(d))d=addDays(d,-1);while(d>=S.startDate&&(valid(d)||!due(d).length)){if(due(d).length||S.jokers[d])n++;d=addDays(d,-1)}return n}
 const dayNum=()=>Math.max(1,Math.min(S.length,diff(S.startDate,today())+1));
 const jokersUsed=k=>Object.keys(S.jokers).filter(d=>d.slice(0,7)===k.slice(0,7)).length;
-function measuresDue(){return S.goals.filter(g=>g.metric&&g.metric.n&&(()=>{const m=S.measures[g.id]||[];return!m.length||diff(m[m.length-1].d,today())>=7})())}
 
 function toggle(aid){
   const a=S.actions.find(x=>x.id===aid);if(!a)return;
@@ -1883,7 +2029,7 @@ function render(){
   if(p>(S.lastPhase||0)&&today()>=S.startDate){S.lastPhase=p;persist();setTimeout(()=>toast(`Phase ${p+1} : ${PHASES[p]}. Les charges montent.`),300)}
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
   el0.innerHTML=tab==="today"?vToday():tab==="goals"?vGoals():tab==="agenda"?vAgenda():tab==="vision"?(lockMode()!=="off"&&!visionOpen?lockScreen("vision"):vVision()):vStats();
-  if(!locked&&!document.getElementById("modal").classList.contains("on")){if(quoteDue())openModal(vQuote());else if(ritualDue())openModal(vRitual())}
+  if(!locked&&!document.getElementById("modal").classList.contains("on")){if(quoteDue())openModal(vQuote());else if(!S.mqShown||S.mqShown!==today()&&mod("prog")){S.mqShown=today();if(!measQueueStart()&&ritualDue())openModal(vRitual())}else if(ritualDue())openModal(vRitual())}
   el0.insertAdjacentHTML("beforeend",`<div class="sync" id="sync">${myBuild?"Version 1.0."+myBuild+" · ":""}${esc(syncState)}</div>`);
 }
 function updSync(){const s=document.getElementById("sync");if(s)s.textContent=(myBuild?"Version 1.0."+myBuild+" · ":"")+syncState}
@@ -1903,9 +2049,9 @@ function vToday(){
   const Cc=2*Math.PI*31,end=addDays(S.startDate,S.length-1),over=diff(S.startDate,k)>=S.length;
   const before=k<S.startDate,nm=S.profile&&S.profile.name,ph=phaseOf(k);
   const jl=JOKERS_PER_MONTH-jokersUsed(k),md=measuresDue();
-  let h=updBanner()+`<div class="top"><div><div class="day">${over?"Programme terminé":before?"Départ le "+fmt(S.startDate):"Jour "+dayNum()+" / "+S.length+" · "+PHASES[ph]+((S.cycle||1)>1?" · Cycle "+S.cycle:"")}</div>
+  let h=updBanner()+vLifeBar()+`<div class="top"><div><div class="day">${over?"Programme terminé":before?"Départ le "+fmt(S.startDate):"Jour "+dayNum()+" / "+S.length+" · "+PHASES[ph]+((S.cycle||1)>1?" · Cycle "+S.cycle:"")}</div>
     <h1 class="big">${nm?esc(nm)+", tiens":"Tiens"} tes<br><span>promesses.</span></h1>
-    <div class="mut sm" style="margin-top:6px">Socle ${cDone}/${C.length} · Bonus ${bDone}/${B.length} · fin le ${fmt(end)}</div></div>
+    <div class="mut sm" style="margin-top:6px">Socle ${cDone}/${C.length} · Bonus ${bDone}/${B.length} · fin le ${fmt(end)} · <a class="tlink" data-do="tip">💡 Astuce</a></div></div>
     <div class="ring"><svg width="74" height="74"><circle cx="37" cy="37" r="31" stroke="#221f18" stroke-width="7" fill="none"/>
     <circle cx="37" cy="37" r="31" stroke="url(#gr)" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${Cc}" stroke-dashoffset="${Cc*(1-r)}"/>
     <defs><linearGradient id="gr"><stop offset="0" stop-color="#a87f1f"/><stop offset="1" stop-color="#f1d27a"/></linearGradient></defs></svg><b>${valid(k)?"✓":Math.round(r*100)+"%"}</b></div></div>
@@ -1928,7 +2074,7 @@ function vToday(){
   ${(()=>{const rv=reviewDue();return rv?`<div class="card banner" data-do="review:${rv}"><b>📊 Bilan de la semaine</b><div class="mut sm">${weekReview(rv).held}/7 jours tenus — appuie pour voir et ajuster</div></div>`:""})()}
   ${(()=>{const u=upcoming(14);return u.length?`<div class="card banner" data-tabgo="agenda"><b>📅 À venir</b>${u.slice(0,3).map(x=>{const dd=diff(today(),x.o);return`<div class="mut sm">${(EVT[x.ev.type]||EVT.rdv).e} ${esc(x.ev.name)} · ${dd===0?"aujourd'hui":dd===1?"demain":"dans "+dd+" jours ("+parse(x.o).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})+")"}</div>`}).join("")}</div>`:""})()}
   ${wealthDue()&&new Date().getDate()<=10?`<div class="card banner" data-do="vtab:wealth"><b>💰 Relevé de patrimoine du mois</b><div class="mut sm">2 minutes pour mettre tes montants à jour</div></div>`:""}
-  ${md.length&&!before?`<div class="card banner" data-tabgo="stats"><b>📏 Mesure de la semaine</b><div class="mut sm">${md.map(x=>esc(x.metric.n)).join(" · ")} — appuie pour saisir</div></div>`:""}
+  ${!before?vMeasCard():""}
   ${S.jokers[k]?`<div class="card jk">🛡️ <b>Jour minimum activé</b> — une seule promesse cochée suffit aujourd'hui. <button class="btn" data-do="unjoker" style="margin-left:6px">Annuler</button></div>`:""}`;
   if(!S.goals.length)return h+`<div class="card empty mut">Aucun objectif. Va dans « Objectifs » pour en créer un.</div>`;
   h+=`<div class="seg"><button class="${S.view==="slot"?"on":""}" data-view="slot">Ma journée</button><button class="${S.view==="goal"?"on":""}" data-view="goal">Par objectif</button></div>`;
@@ -1970,8 +2116,9 @@ function vGoals(){
       <label class="btn" style="cursor:pointer">📷 Ma photo<input type="file" accept="image/*" data-photo="${go.id}" hidden></label>
       ${S.photos[go.id]?`<button class="btn d" data-do="unphoto:${go.id}">✕</button>`:""}</div>
       <label class="f">Résultat visé</label><input data-g="${go.id}" data-f="target" value="${esc(go.target)}" placeholder="Ex. Gagner 10 000 €/mois">
-      <label class="f">Mesure de la semaine</label><div style="display:grid;grid-template-columns:1fr 80px;gap:8px">
+      <label class="f">Mesure suivie</label><div style="display:grid;grid-template-columns:1fr 80px;gap:8px">
       <input data-gm="${go.id}" data-f="n" value="${esc(m.n)}" placeholder="Ex. Poids"><input data-gm="${go.id}" data-f="u" value="${esc(m.u)}" placeholder="Unité"></div>
+      ${m.n?`<label class="f">Quand te la demander ?</label>${vTrackEdit(go)}`:""}
       <label class="f">Promesses</label>
       ${acts.map(a=>`<div class="edit-a"><input data-a="${a.id}" data-f="label" value="${esc(a.label)}">
         <select data-a="${a.id}" data-f="xp">${[10,20,30,50].map(v=>`<option value="${v}" ${a.xp===v?"selected":""}>${v} XP</option>`).join("")}</select>
@@ -2010,14 +2157,14 @@ function vStats(){
   h+=`<div class="card"><div class="phases">${PHASES.map((n,i)=>`<div class="${i===ph?"on":i<ph?"done":""}"><b>${i+1}. ${n}</b><span>${fmt(phaseStart(i))} → ${fmt(i<2?addDays(phaseStart(i+1),-1):addDays(S.startDate,S.length-1))}</span></div>`).join("")}</div></div>
   <div class="card"><div class="grid66">${cells}</div>
   <div class="mut sm" style="margin-top:10px">Or vif = socle tenu · foncé = partiel · 🛡 = jour minimum</div></div>
-  <div class="card"><div class="disp" style="font-size:16px;margin-bottom:6px">Mesures de la semaine</div>`;
+  <div class="card"><div class="disp" style="font-size:16px;margin-bottom:6px">Mes mesures</div>`;
   const gm=S.goals.filter(g=>g.metric&&g.metric.n);
   if(!gm.length)h+=`<div class="mut sm">Aucune mesure définie. Ajoute-en une dans « Objectifs ».</div>`;
   gm.forEach(g=>{const m=S.measures[g.id]||[],last=m[m.length-1],first=m[0],u=g.metric.u||"";
-    const dl=m.length>1?last.v-first.v:null,isDue=!m.length||diff(last.d,k)>=7;
+    const dl=m.length>1?last.v-first.v:null,isDue=measDue(g,k);
     h+=`<div class="meas"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b>${esc(g.emoji)} ${esc(g.metric.n)}</b>
-      <div class="mut sm">${last?`${fnum(last.v)} ${esc(u)} le ${fmt(last.d)}${dl!==null?` · ${dl>0?"+":""}${fnum(dl)} ${esc(u)} depuis le début`:""}`:"Pas encore de mesure"}</div></div>${spark(m.map(x=>x.v))}</div>
-      <div class="row" style="margin-top:8px"><input inputmode="decimal" data-mv="${g.id}" placeholder="${isDue?"À saisir cette semaine":"Nouvelle valeur"}${u?" ("+esc(u)+")":""}"><button class="btn ${isDue?"p":""}" data-do="meas:${g.id}">Enregistrer</button></div></div>`});
+      <div class="mut sm">${last?`${fnum(last.v)} ${esc(u)} le ${fmt(last.d)}${dl!==null?` · ${dl>0?"+":""}${fnum(dl)} ${esc(u)} depuis le début`:""}`:"Pas encore de mesure"}</div></div></div>${chartOf(g)}${projText(g)?`<div class="mut sm" style="margin-top:4px">${projText(g)}</div>`:""}
+      <div class="row" style="margin-top:8px;gap:8px"><input inputmode="decimal" data-mv="${g.id}" style="flex:1;min-width:0" placeholder="${isDue?"À saisir ("+TRK_F[trackOf(g).f].toLowerCase()+")":"Nouvelle valeur"}${u?" "+esc(u):""}"><button class="btn ${isDue?"p":""}" data-do="meas:${g.id}">Enregistrer</button></div></div>`});
   h+=`</div><div class="card"><div class="row" style="justify-content:space-between"><div class="disp" style="font-size:16px">Trophées</div><span class="mut sm">${Object.keys(S.trophies||{}).length}/${TROPHIES.length}</span></div>
     <div class="tro">${TROPHIES.map(t=>{const g=(S.trophies||{})[t.id];return`<div class="tr ${g?"on":""}">${medal(t)}<b>${esc(t.n)}</b><span>${g?"le "+fmt(g):esc(t.d)}</span></div>`}).join("")}</div></div>
   <button class="btn" style="width:100%;padding:12px;margin-bottom:12px" data-do="review:${today()}">📊 Bilan des 7 derniers jours</button>
@@ -2044,7 +2191,7 @@ function vStats(){
   <div class="card"><div class="disp" style="font-size:16px">Rappels</div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><span>Rappels sur le téléphone</span><button class="btn ${S.notif.on?"p":""}" data-do="notifon">${S.notif.on?"Activés":"Désactivés"}</button></div>
     <div class="tgrid">${["matin","midi","aprem","soir"].map(s=>`<label>${SLOTS[s]}<input type="time" data-nt="${s}" value="${S.notif.times[s]}"></label>`).join("")}
-    <label>🌙 Bilan du soir<input type="time" data-nb="bilan" value="${S.notif.bilan}"></label><label>📏 Mesure (dimanche)<input type="time" data-nb="mesure" value="${S.notif.mesure}"></label><label>⚠️ Relance si socle incomplet<input type="time" data-nb="relance" value="${S.notif.relance||"20:00"}"></label></div>
+    <label>🌙 Bilan du soir<input type="time" data-nb="bilan" value="${S.notif.bilan}"></label><label>⚠️ Relance si socle incomplet<input type="time" data-nb="relance" value="${S.notif.relance||"20:00"}"></label></div>
     <div class="mut sm" style="margin:8px 0">À chaque créneau, un rappel liste les promesses du moment pas encore cochées. Une promesse avec une heure précise a son propre rappel.</div>
     <div id="nstate">${notifStateHtml()}</div>
     ${LN?`<button class="btn" style="margin-top:8px;width:100%" data-do="testnotif">Tester une notification (dans 5 s)</button>`:""}</div>
@@ -2058,6 +2205,7 @@ function vStats(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input data-pt="name" value="${esc((S.partner||{}).name||"")}" placeholder="Prénom"><input data-pt="phone" inputmode="tel" value="${esc((S.partner||{}).phone||"")}" placeholder="06 12 34 56 78"></div></div>
   <div class="card"><div class="disp" style="font-size:16px">Réglages</div>
     ${vOffSettings()}
+    <label class="sc" style="margin-top:12px"><input type="checkbox" data-do="lifet" ${!(S.profile||{}).lifeOff?"checked":""}><span><b>Compte à rebours de vie</b><em>Le temps qu'il te reste, en haut de l'écran (tables INSEE)${(S.profile||{}).birth?"":" · date de naissance à renseigner"}</em></span></label>
     <label class="sc" style="margin-top:12px"><input type="checkbox" data-do="quotet" ${(S.quote||{}).on!==false?"checked":""}><span><b>Citation du jour à l'ouverture</b><em>Une pensée sur l'entrepreneuriat et le dépassement de soi, chaque matin</em></span></label>
     <label class="f">Univers des grades</label><div class="segs">${Object.entries(UNIVERS).map(([k,u])=>`<button class="${((S.profile||{}).univ||"ent")===k?"on":""}" data-do="univ:${k}">${u.e} ${u.n}</button>`).join("")}</div>
     <div class="mut sm" style="margin-top:4px">${univ().g.join(" → ")}</div>
@@ -2081,6 +2229,17 @@ function run(cmd){
   if(cmd.startsWith("agck:")){const it=agCur[cmd.slice(5)];closeModal();if(it)agCheck(it);return}
   const[c,id,x3]=cmd.split(":");const k=today();
   if(c==="agadd"){agOpen(null);return}
+  if(c==="tip"){openModal(vTip());return}
+  if(c==="lifeinfo"){openModal(vLifeInfo());return}
+  if(c==="lifeset"){openModal(vLifeSet());return}
+  if(c==="lfsex"){S.profile=S.profile||{};S.profile.sex=id;persist();openModal(vLifeSet());return}
+  if(c==="lifeok"){const v=document.getElementById("lfB").value;if(!v){toast("Choisis ta date de naissance");return}S.profile=S.profile||{};S.profile.birth=v;persist();closeModal();render();return}
+  if(c==="lifet"){S.profile=S.profile||{};S.profile.lifeOff=!S.profile.lifeOff;persist();render();return}
+  if(c==="gal"){galFor=id;openModal(vGallery());return}
+  if(c==="galtab"){galTab=id;openModal(vGallery());return}
+  if(c==="galpick"){if(galFor){S.photos=S.photos||{};S.photos["d:"+galFor]=pxu(id,1200);persist()}closeModal();render();toast("Image choisie");return}
+  if(c==="mqok"){const v=num(document.getElementById("mqV").value);if(v===null){toast("Saisis un nombre");return}saveMeasure(mqQ[mqI].id,v);persist();checkTrophies();mqI++;if(mqI<mqQ.length)openModal(vMeasQ());else{closeModal();render();toast("✓ Saisies faites");if(ritualDue())openModal(vRitual())}return}
+  if(c==="mqskip"){S.mq=S.mq||{};S.mq[mqQ[mqI].id]=today();persist();mqI++;if(mqI<mqQ.length)openModal(vMeasQ());else{closeModal();render();if(ritualDue())openModal(vRitual())}return}
   if(c==="goalnew"){goalStart();return}
   if(c==="gpvoice"){closeModal();goalVoice();return}
   if(c==="gptext"){const v=(document.getElementById("gpT").value||"").trim();if(!v){toast("Écris ton objectif");return}goalBuild(v);return}
@@ -2182,8 +2341,7 @@ function run(cmd){
   if(c==="joker"){if(jokersUsed(k)<JOKERS_PER_MONTH){S.jokers[k]=true;toast("Jour minimum : une promesse suffit. Choisis la plus importante.")}}
   if(c==="unjoker")delete S.jokers[k];
   if(c==="meas"){const i=document.querySelector(`[data-mv="${id}"]`),v=i&&num(i.value);if(v===null){toast("Saisis un nombre");return}
-    const m=S.measures[id]||(S.measures[id]=[]);const last=m[m.length-1];if(last&&last.d===k)last.v=v;else m.push({d:k,v});
-    {const g=S.goals.find(x=>x.id===id);if(g&&g.key==="body"&&/poids/i.test(g.metric.n)&&mod("body")){S.body=S.body||{log:[]};const L=S.body.log||(S.body.log=[]),l=L[L.length-1];if(l&&l.d===k)l.v=v;else L.push({d:k,v})}}
+    saveMeasure(id,v);
     toast("Mesure enregistrée");checkTrophies()}
   if(c==="update"){doUpdate();return}
   if(c==="checkupd"){checkUpdate(true).then(()=>toast(upd?"Nouvelle version disponible":"Tu as la dernière version"));return}
@@ -2225,6 +2383,7 @@ document.addEventListener("click",e=>{
   if(c){if(c.classList.contains("armed")){run(c.dataset.confirm)}else{c.classList.add("armed");c.dataset.txt=c.textContent;c.textContent="Confirmer ?";setTimeout(()=>{if(c.isConnected){c.classList.remove("armed");c.textContent=c.dataset.txt}},3000)}}
 });
 document.addEventListener("change",e=>{
+  const trk=e.target.closest("[data-trk]");if(trk){const g=S.goals.find(x=>x.id===trk.dataset.trk);if(g){g.track={...trackOf(g),[trk.dataset.k]:trk.value};persist();scheduleSoon();if(trk.dataset.k==="f")render()}return}
   const gpo=e.target.closest("[data-gpon]");if(gpo&&gpDraft){gpDraft.actions[+gpo.dataset.gpon].on=gpo.checked;openModal(vGoalDraft());return}
   const gpf=e.target.closest("[data-gpf]");if(gpf&&gpDraft){const a=gpDraft.actions[+gpf.dataset.gpf],kk=gpf.dataset.k;a[kk]=kk==="dur"?+gpf.value:gpf.value;openModal(vGoalDraft());return}
   const t=e.target;
